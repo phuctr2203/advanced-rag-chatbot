@@ -1,0 +1,60 @@
+# Build outputs
+bin/
+obj/
+out/
+.claude-build/
+
+# .NET user/local files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+TestResults/
+coverage/
+coverage.xml
+*.coverage
+*.coveragexml
+
+# ASP.NET / local config secrets
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/appsettings.*.local.json
+secrets.json
+.env
+.env.*
+!.env.example
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.DotSettings.user
+
+# Node / React
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docker service data
+qdrant_data/
+tei_cache/
+
+# Ingestion runtime data
+data/images/
+data/temp/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
