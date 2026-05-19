@@ -1,16 +1,19 @@
 # ELCA Policy Chatbot — Progress
 
 Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after feature is verified end-to-end.
+> Agent: update checkboxes here at the end of every session. 
+> Do not edit phase files.
 
 ## Phase 1 — Infrastructure & project setup
 
-- [ ] 1.1 Docker environment running (Qdrant + TEI)
+- [x] 1.1 Docker environment running (Qdrant + TEI)
 - [x] 1.2 Qdrant collection created
 - [x] 1.3 ASP.NET Core project scaffolded
 - [x] 1.4 DI, config, and folder structure in place
 - [ ] 1.5 LLM provider abstraction implemented
-- [ ] 1.6 EmbeddingService connected to TEI
-- [ ] 1.7 VectorStoreService connected to Qdrant
+  - Note: code builds, but real OpenWebUI/Ollama completion not verified because no working endpoint/key configured.
+- [x] 1.6 EmbeddingService connected to TEI
+- [x] 1.7 VectorStoreService connected to Qdrant
 
 ## Phase 2 — Document ingestion pipeline
 

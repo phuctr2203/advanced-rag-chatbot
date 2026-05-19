@@ -2,6 +2,15 @@
 
 > This file is loaded automatically every session. Keep it open alongside `docs/PROGRESS.md` and the current phase file.
 
+## Session rules
+
+- Read `PROGRESS.md` at the start of every session to see what's done
+- Work only on the current phase — do not jump ahead
+- At the end of every session, verify completed work and update 
+  checkboxes in `PROGRESS.md`
+- Do not mark a checkbox unless the feature is verified working end-to-end
+- If a task is partially done, leave it unchecked and add a note below it
+
 ---
 
 ## Project
@@ -143,3 +152,4 @@ curl http://localhost:8080/health    # TEI
 # Stop
 docker compose down
 ```
+

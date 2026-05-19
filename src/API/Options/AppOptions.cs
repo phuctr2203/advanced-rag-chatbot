@@ -24,6 +24,7 @@ public class QdrantOptions
 {
     public string Host { get; set; } = "localhost";
     public int Port { get; set; } = 6333;
+    public int GrpcPort { get; set; } = 6334;
     public string CollectionName { get; set; } = "policy_docs";
 }
 

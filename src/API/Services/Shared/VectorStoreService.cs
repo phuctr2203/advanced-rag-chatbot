@@ -17,7 +17,7 @@ public class VectorStoreService
     public VectorStoreService(IOptions<QdrantOptions> options)
     {
         _options = options.Value;
-        _client = new QdrantClient(_options.Host, _options.Port);
+        _client = new QdrantClient(_options.Host, _options.GrpcPort);
     }
 
     public async Task EnsureCollectionAsync(CancellationToken ct = default)
