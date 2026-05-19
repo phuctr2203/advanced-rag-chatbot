@@ -14,7 +14,7 @@ services:
     container_name: elca-tei
     ports:
       - "8080:80"
-    command: --model-id BAAI/bge-m3 --max-client-batch-size 32
+    command: --model-id /data/BAAI/bge-m3 --max-client-batch-size 32
     volumes:
       - ./tei_cache:/data
     restart: unless-stopped
