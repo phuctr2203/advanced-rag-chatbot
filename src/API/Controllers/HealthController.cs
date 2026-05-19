@@ -6,7 +6,10 @@ namespace PolicyBot.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class HealthController(IEmbeddingProvider embeddingProvider, VectorStoreService vectorStoreService) : ControllerBase
+public class HealthController(
+    IEmbeddingProvider embeddingProvider,
+    ILlmProvider llmProvider,
+    VectorStoreService vectorStoreService) : ControllerBase
 {
     [HttpGet]
     public IActionResult Get()
@@ -35,5 +38,12 @@ public class HealthController(IEmbeddingProvider embeddingProvider, VectorStoreS
         var embeddings = await embeddingProvider.EmbedAsync(["Annual leave policy verification chunk."], ct);
         var success = await vectorStoreService.VerifyRoundTripAsync(embeddings[0], ct);
         return Ok(new { success });
+    }
+
+    [HttpPost("llm")]
+    public async Task<IActionResult> VerifyLlm(CancellationToken ct)
+    {
+        var response = await llmProvider.CompleteAsync("Reply with OK only.", 10, ct);
+        return Ok(new { response = response.Trim() });
     }
 }

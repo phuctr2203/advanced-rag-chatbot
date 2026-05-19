@@ -10,8 +10,7 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 1.2 Qdrant collection created
 - [x] 1.3 ASP.NET Core project scaffolded
 - [x] 1.4 DI, config, and folder structure in place
-- [ ] 1.5 LLM provider abstraction implemented
-  - Note: code builds, but real OpenWebUI/Ollama completion not verified because no working endpoint/key configured.
+- [x] 1.5 LLM provider abstraction implemented
 - [x] 1.6 EmbeddingService connected to TEI
 - [x] 1.7 VectorStoreService connected to Qdrant
 
