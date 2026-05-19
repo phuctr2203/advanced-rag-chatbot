@@ -14,6 +14,13 @@ public class LlmEndpointOptions
     public string Model { get; set; } = string.Empty;
 }
 
+public class VisionProviderOptions
+{
+    public string Active { get; set; } = "Ollama";
+    public LlmEndpointOptions OpenWebUI { get; set; } = new();
+    public LlmEndpointOptions Ollama { get; set; } = new();
+}
+
 public class EmbeddingOptions
 {
     public string BaseUrl { get; set; } = "http://localhost:8080";

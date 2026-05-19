@@ -9,6 +9,7 @@ namespace PolicyBot.Api.Controllers;
 public class HealthController(
     IEmbeddingProvider embeddingProvider,
     ILlmProvider llmProvider,
+    IVisionProvider visionProvider,
     VectorStoreService vectorStoreService) : ControllerBase
 {
     [HttpGet]
@@ -45,5 +46,14 @@ public class HealthController(
     {
         var response = await llmProvider.CompleteAsync("Reply with OK only.", 10, ct);
         return Ok(new { response = response.Trim() });
+    }
+
+    [HttpPost("vision")]
+    public async Task<IActionResult> VerifyVision(IFormFile image, CancellationToken ct)
+    {
+        using var stream = new MemoryStream();
+        await image.CopyToAsync(stream, ct);
+        var response = await visionProvider.DescribeImageAsync(stream.ToArray(), "Vision provider verification image.", ct);
+        return Ok(new { response = response.Trim(), success = !string.IsNullOrWhiteSpace(response) });
     }
 }

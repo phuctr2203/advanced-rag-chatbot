@@ -11,37 +11,42 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 1.3 ASP.NET Core project scaffolded
 - [x] 1.4 DI, config, and folder structure in place
 - [x] 1.5 LLM provider abstraction implemented
-- [x] 1.6 EmbeddingService connected to TEI
-- [x] 1.7 VectorStoreService connected to Qdrant
+- [x] 1.6 Vision provider abstraction (`IVisionProvider`, `OllamaVisionProvider`)
+- [x] 1.7 Vision provider verified
+- [x] 1.8 EmbeddingService connected to TEI
+- [x] 1.9 VectorStoreService connected to Qdrant
 
 ## Phase 2 — Document ingestion pipeline
 
-- [ ] 2.1 PDF parser (text + image extraction)
-- [ ] 2.2 PPTX → PDF conversion + pipeline
-- [ ] 2.3 DOCX parser (text + image extraction)
-- [ ] 2.4 DOC → DOCX conversion + pipeline
-- [ ] 2.5 XLSX parser (form field reconstruction)
-- [ ] 2.6 Text chunker — Strategy A: fixed-size
-- [ ] 2.7 Text chunker — Strategy B: paragraph/semantic boundary
-- [ ] 2.8 Text chunker — Strategy C: sliding window with sentence awareness
-- [ ] 2.9 Chunker evaluation complete and strategy chosen
-- [ ] 2.10 Document classifier — manual selection via API param
-- [ ] 2.11 Document classifier — LLM auto-classify fallback
-- [ ] 2.12 Full ingestion orchestrator wired end-to-end
-- [ ] 2.13 POST /api/ingest endpoint with optional `agent` param
-- [ ] 2.14 Static image serving configured
+- [ ] 2.1 PDF parser — text extraction per page
+- [ ] 2.2 PDF parser — image extraction + saved to disk
+- [ ] 2.3 PDF parser — image captioning via vision provider
+- [ ] 2.4 PPTX → PDF conversion via LibreOffice
+- [ ] 2.5 DOCX parser — text + image extraction
+- [ ] 2.6 DOC → DOCX conversion via LibreOffice
+- [ ] 2.7 XLSX parser — form field reconstruction as readable prose
+- [ ] 2.8 Text chunker — Strategy A: FixedSize
+- [ ] 2.9 Text chunker — Strategy B: ParagraphBoundary
+- [ ] 2.10 Text chunker — Strategy C: SentenceWindow
+- [ ] 2.11 Chunker evaluation — strategy chosen, reason noted below
+- [ ] 2.12 Document classifier — manual agent via API param
+- [ ] 2.13 Document classifier — LLM auto-classify fallback
+- [ ] 2.14 Ingestion orchestrator wired end-to-end
+- [ ] 2.15 `POST /api/ingest` endpoint working
+- [ ] 2.16 Static image serving configured (`/images/...`)
 
 ## Phase 3 — RAG query pipeline
 
 - [ ] 3.1 Language detection service
-- [ ] 3.2 Intent classifier (hybrid fast-path + LLM)
-- [ ] 3.3 Intent response templates for EN, VI, FR, DE
-- [ ] 3.4 Vector search across all documents with score filter
-- [ ] 3.5 Prompt builder with context and citations
-- [ ] 3.6 LLM streaming service
-- [ ] 3.7 Source citation parser
-- [ ] 3.8 POST /api/chat SSE endpoint
-- [ ] 3.9 End-to-end RAG verified in all 4 languages
+- [ ] 3.2 Intent classifier — fast path
+- [ ] 3.3 Intent classifier — LLM fallback
+- [ ] 3.4 Intent response templates (all 4 languages)
+- [ ] 3.5 Vector search (no agent filter)
+- [ ] 3.6 Prompt builder
+- [ ] 3.7 LLM streaming service
+- [ ] 3.8 Source citation parser
+- [ ] 3.9 `POST /api/chat` SSE endpoint
+- [ ] 3.10 End-to-end RAG verified in all 4 languages
 
 ## Phase 4 — Frontend
 
