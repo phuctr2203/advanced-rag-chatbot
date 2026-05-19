@@ -1,14 +1,50 @@
 using Microsoft.AspNetCore.Mvc;
+using PolicyBot.Api.Models;
+using PolicyBot.Api.Services.Ingestion.Parsers;
 
 namespace PolicyBot.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class IngestController : ControllerBase
+public class IngestController(PdfParserService pdfParserService, FileConversionService fileConversionService) : ControllerBase
 {
     [HttpPost]
     public IActionResult Ingest(IFormFile file, [FromQuery] string? agent)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new { error = "Ingestion pipeline starts in Phase 2." });
+        return StatusCode(StatusCodes.Status501NotImplemented, new { error = "Full ingestion pipeline starts in Phase 2.13." });
+    }
+
+    [HttpPost("parse/pdf")]
+    public async Task<ActionResult<IReadOnlyList<ParsedChunk>>> ParsePdf(IFormFile file, CancellationToken ct)
+    {
+        var filePath = await SaveTempFileAsync(file, ct);
+        var chunks = await pdfParserService.ParseAsync(filePath, file.FileName, ct: ct);
+        return Ok(chunks);
+    }
+
+    [HttpPost("convert/pptx")]
+    public async Task<IActionResult> ConvertPptx(IFormFile file, CancellationToken ct)
+    {
+        var filePath = await SaveTempFileAsync(file, ct);
+        var pdfPath = await fileConversionService.ToPdfAsync(filePath, ct);
+        var chunks = await pdfParserService.ParseAsync(pdfPath, file.FileName, ct: ct);
+        return Ok(new
+        {
+            pdfPath,
+            pages = chunks.Select(chunk => chunk.PageNumber).Distinct().Count(),
+            chunks
+        });
+    }
+
+    private static async Task<string> SaveTempFileAsync(IFormFile file, CancellationToken ct)
+    {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "policy-bot-uploads");
+        Directory.CreateDirectory(tempDirectory);
+
+        var safeFileName = Path.GetFileName(file.FileName);
+        var filePath = Path.Combine(tempDirectory, $"{Guid.NewGuid():N}_{safeFileName}");
+        await using var stream = System.IO.File.Create(filePath);
+        await file.CopyToAsync(stream, ct);
+        return filePath;
     }
 }

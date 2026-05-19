@@ -1,5 +1,7 @@
 using PolicyBot.Api.Options;
 using PolicyBot.Api.Providers;
+using PolicyBot.Api.Services.Ingestion;
+using PolicyBot.Api.Services.Ingestion.Parsers;
 using PolicyBot.Api.Services.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +20,9 @@ builder.Services.AddHttpClient<OllamaVisionProvider>();
 builder.Services.AddHttpClient<OpenWebUIVisionProvider>();
 builder.Services.AddTransient<IVisionProvider, VisionProviderFactory>();
 builder.Services.AddHttpClient<IEmbeddingProvider, EmbeddingService>();
+builder.Services.AddScoped<ImageCaptioningService>();
+builder.Services.AddScoped<PdfParserService>();
+builder.Services.AddScoped<FileConversionService>();
 builder.Services.AddSingleton<VectorStoreService>();
 
 var app = builder.Build();
