@@ -2,7 +2,7 @@
 
 > **Agent:** when tasks are completed, update checkboxes in `.claude/PROGRESS.md` — not here.
 
-Goal: parse all supported document types, caption images via vision model, chunk text, classify agent domain, embed chunks, and store in Qdrant with full metadata.
+Goal: parse all supported document types, filter and caption images via vision model, chunk text, classify agent domain, embed chunks, and store in Qdrant with full metadata.
 
 > **Prerequisite:** Task 1.7 (vision provider verified) must be complete before starting 2.2.
 
@@ -51,37 +51,121 @@ Verification: parse a text-based PDF, confirm non-empty text per page.
 
 ---
 
-## Task 2.2 — PDF parser (image extraction + captioning)
+## Task 2.2 — ImageCaptioningService (multi-layer filter + caption)
 
-Extend `PdfParserService` to handle images on each page.
+Implement `Services/Ingestion/ImageCaptioningService.cs` used by both PDF and DOCX parsers.
 
-For each image found via `page.GetImages()`:
+### Return type
 
-1. Skip if width or height < 100 px (decorative)
-2. Save bytes to `{ImageStorePath}/{docName}/page{N}_img{I}.png`
-3. Call `ImageCaptioningService.CaptionAsync(imageBytes, pageText)`
-4. Create a separate `ParsedChunk` with:
-   - `Text` = caption returned by vision model
-   - `ChunkType` = `"image_caption"`
-   - `ImagePath` = `/images/{docName}/page{N}_img{I}.png`
-   - `PageNumber`, `SourceFile`, `FileType`, `Agent` same as page
+```csharp
+public class ImageCaptionResult
+{
+    public string Caption { get; set; }
+}
 
-`ImageCaptioningService` prompt to vision model:
+// Returns null if image should be skipped at any layer
+public async Task<ImageCaptionResult?> ProcessImageAsync(
+    byte[] imageBytes,
+    int width,
+    int height,
+    string sourceFile,
+    int page,
+    string pageText,
+    CancellationToken ct = default)
+```
+
+### Filtering pipeline — run in order, skip image if any layer rejects
+
+**Layer 1 — Size filter**
+```csharp
+if (width < 100 || height < 100) return null; // too small — icon, bullet, decoration
+```
+
+**Layer 2 — Aspect ratio filter**
+```csharp
+var ratio = (float)width / height;
+if (ratio > 5.0f || ratio < 0.2f) return null; // banner, divider, thin line
+```
+
+**Layer 3 — Vision classification**
+
+Call vision model with `maxTokens: 5`:
+
+```
+Is this image meaningful policy content such as an org chart, process diagram,
+form layout, table, or instructional graphic?
+Or is it decorative such as a logo, banner, background, divider, or icon?
+Reply with ONLY one word: CONTENT or DECORATIVE.
+```
+
+- `DECORATIVE` → return `null`
+- `CONTENT` → proceed to caption
+- Call fails → log and return `null` (never crash ingestion)
+
+**Layer 4 — Caption generation**
+
+Only reached if all filters pass:
+
 ```
 This image appears in a company policy document called "{sourceFile}", page {page}.
 The surrounding text on this page discusses: "{first150charsOfPageText}".
 Describe what this image shows in 2-3 sentences. Focus on content relevant to company policies.
 ```
 
-Rules:
-- If captioning fails, log the error and skip — do not crash ingestion
-- Empty captions are skipped (not stored)
+- Empty or whitespace caption → return `null`
+- Return caption string
 
-Verification: parse a PDF with images, confirm image files saved to disk and caption chunks created with non-empty text.
+### Usage in parsers
+
+```csharp
+var result = await _captioningService.ProcessImageAsync(
+    imageBytes, width, height, sourceFile, pageNumber, pageText, ct);
+
+if (result is null) continue; // filtered out
+
+// Save to disk
+var relativePath = $"/images/{docName}/page{pageNumber}_img{i}.png";
+Directory.CreateDirectory(Path.GetDirectoryName(diskPath)!);
+File.WriteAllBytes(diskPath, imageBytes);
+
+// Create caption chunk
+chunks.Add(new ParsedChunk
+{
+    Text      = result.Caption,
+    ChunkType = "image_caption",
+    ImagePath = relativePath,
+    SourceFile = sourceFile,
+    PageNumber = pageNumber,
+    FileType   = fileType
+});
+```
+
+Verification:
+- Logo image → `null` (DECORATIVE)
+- Org chart image → non-empty caption (CONTENT)
+- 50×50 icon → `null` (Layer 1)
+- Wide banner → `null` (Layer 2)
 
 ---
 
-## Task 2.3 — PPTX → PDF conversion
+## Task 2.3 — PDF parser (image extraction)
+
+Extend `PdfParserService` to process images per page using `ImageCaptioningService`.
+
+For each image found via `page.GetImages()`:
+
+1. Extract `width`, `height`, `RawBytes` — skip if `RawBytes` is null
+2. Pass to `ImageCaptioningService.ProcessImageAsync()`
+3. If result is `null` → skip
+4. If result has caption → save image to disk + create `image_caption` chunk
+
+Rule: always extract page text first so `pageText` context is available for captioning.
+
+Verification: PDF with a logo and an org chart — logo skipped, org chart captioned and stored.
+
+---
+
+## Task 2.4 — PPTX → PDF conversion
 
 Implement `FileConversionService.ToPdfAsync(string filePath)`:
 
@@ -96,7 +180,7 @@ Verification: convert a PPTX, confirm output PDF page count equals slide count.
 
 ---
 
-## Task 2.4 — DOCX parser
+## Task 2.5 — DOCX parser
 
 Implement `DocxParserService` using `DocumentFormat.OpenXml`.
 
@@ -105,14 +189,16 @@ Behavior:
 - Track page breaks via `Break` elements — increment page counter when found
 - Estimate page number if no explicit page break
 - Extract images from `ImagePart` relationships (document-level)
-- Save images and call `ImageCaptioningService` same as PDF flow
-- Attach all document images to all chunks (DOCX has no per-page image API)
+- Pass each image through `ImageCaptioningService.ProcessImageAsync()` — same filter layers apply
+- Skip images that return `null`
 
-Verification: parse a DOCX with paragraphs and embedded images.
+Note: DOCX has no per-page image API. Attach caption chunks at document level with estimated page number.
+
+Verification: parse a DOCX with paragraphs and embedded images — logos filtered, diagrams captioned.
 
 ---
 
-## Task 2.5 — DOC → DOCX conversion
+## Task 2.6 — DOC → DOCX conversion
 
 Implement `FileConversionService.ToDocxAsync(string filePath)`:
 
@@ -126,39 +212,38 @@ Verification: converted DOCX parses and preserves useful text.
 
 ---
 
-## Task 2.6 — XLSX parser
+## Task 2.7 — XLSX parser
 
 Implement `XlsxParserService` using `ClosedXML`.
 
 Rules:
 - Do NOT dump raw cell values
 - Treat each sheet as one page
-- Reconstruct each row as readable prose from column headers + values:
+- Reconstruct each row as readable prose:
   ```
   Field: Request Type — Value: Laptop Purchase — Description: Equipment request form
   ```
 - Filter empty rows
-- No image captioning needed for form templates
+- No image processing for form templates
 
 Verification: internal purchasing form produces readable policy context sentences.
 
 ---
 
-## Tasks 2.7–2.9 — Text chunking strategies
+## Tasks 2.8–2.10 — Text chunking strategies
 
-Implement `TextChunkerService` with a selectable strategy via `Ingestion:ChunkingStrategy` config.
+Implement `TextChunkerService` with selectable strategy via `Ingestion:ChunkingStrategy` config.
 
 ### Strategy A — FixedSize
 
-- Split by word count: 400 words per chunk
-- 80-word overlap between chunks
+- Split by word count: 400 words per chunk, 80-word overlap
 - Drop chunks under 30 words
 
 ### Strategy B — ParagraphBoundary *(default)*
 
 - Split on blank lines and heading-like patterns first
 - Keep paragraphs intact when under 400 words
-- Fall back to FixedSize for paragraphs exceeding 400 words
+- Fall back to FixedSize for long paragraphs
 
 ### Strategy C — SentenceWindow
 
@@ -172,20 +257,20 @@ All strategies must:
 
 ---
 
-## Task 2.10 — Chunker evaluation
+## Task 2.11 — Chunker evaluation
 
-Before ingesting all 20 documents, evaluate strategies:
+Before ingesting all 20 documents:
 
-1. Ingest the same 2–3 policy documents with each strategy into separate Qdrant collections (e.g. `policy_docs_fixed`, `policy_docs_para`, `policy_docs_sentence`)
+1. Ingest 2–3 policy documents with each strategy into separate test collections (`policy_docs_fixed`, `policy_docs_para`, `policy_docs_sentence`)
 2. Ask 5 representative questions against each collection
-3. Compare: coherence of retrieved chunks, answer completeness, citation precision
-4. Choose the best strategy and record the decision in `.claude/PROGRESS.md` under the chunker note
+3. Compare coherence, answer completeness, citation precision
+4. Choose best strategy and record decision in `.claude/PROGRESS.md` under the chunker note
 
 ---
 
-## Task 2.11 — Manual document classifier
+## Task 2.12 — Manual document classifier
 
-Accept optional `agent` query param on the ingest endpoint:
+Accept optional `agent` query param:
 
 ```
 POST /api/ingest?agent=ELCA_HR
@@ -197,7 +282,7 @@ If provided → skip LLM classification, apply agent directly to all chunks.
 
 ---
 
-## Task 2.12 — LLM auto-classify fallback
+## Task 2.13 — LLM auto-classify fallback
 
 When `agent` param is missing, classify using first 500 words:
 
@@ -215,13 +300,13 @@ Document excerpt:
 
 Rules:
 - `maxTokens: 10`
-- One call per document (not per chunk)
+- One call per document
 - Unexpected response defaults to `ELCA_GENERAL`
-- Log the chosen category
+- Log chosen category
 
 ---
 
-## Task 2.13 — Ingestion orchestrator
+## Task 2.14 — Ingestion orchestrator
 
 `DocumentIngestionService` flow:
 
@@ -229,6 +314,7 @@ Rules:
 1. Validate file extension
 2. Convert if needed (DOC→DOCX, PPTX→PDF)
 3. Parse file → text chunks + image caption chunks
+   (image filter layers run inside ImageCaptioningService)
 4. Determine agent (manual param OR LLM fallback)
 5. Apply agent to all chunks
 6. Run text chunks through chunker (image_caption chunks skipped)
@@ -239,7 +325,7 @@ Rules:
 
 ---
 
-## Task 2.14 — Ingest endpoint
+## Task 2.15 — Ingest endpoint
 
 ```
 POST /api/ingest?agent=ELCA_HR     (agent param optional)
@@ -260,7 +346,7 @@ Response:
 
 ---
 
-## Task 2.15 — Static image serving
+## Task 2.16 — Static image serving
 
 `Program.cs`:
 
@@ -272,7 +358,150 @@ app.UseStaticFiles(new StaticFileOptions
 });
 ```
 
-Verification: upload a PDF with images, access `/images/{docName}/page1_img0.png` in browser and confirm it loads.
+Verification: upload a PDF with images, access `/images/{docName}/page1_img0.png` in browser, confirm it loads.
+
+---
+
+## Task 2.17 — Form registry setup
+
+Create `data/form-registry.json` at project root. This file is maintained manually — you link PDF form mentions to their downloadable DOCX files here.
+
+### Schema
+
+```json
+[
+  {
+    "form_name": "Payment Request Form",
+    "aliases": [
+      "payment request form",
+      "request for payment",
+      "đề nghị thanh toán",
+      "giấy đề nghị thanh toán"
+    ],
+    "docx_file": "Payment_request_form.docx",
+    "download_path": "/templates/Payment_request_form.docx",
+    "agent": "ELCA_GENERAL"
+  }
+]
+```
+
+| Field | Description |
+|---|---|
+| `form_name` | Display name shown in the chat UI download button |
+| `aliases` | All name variations the LLM might extract — used for matching |
+| `docx_file` | Actual filename of the DOCX template |
+| `download_path` | URL path served by the static file server |
+| `agent` | Which agent domain this form belongs to |
+
+### How to populate it
+
+**Step 1 — ingest the PDF** that references forms. The LLM auto-classifier (Task 2.13) will read the document. Separately, after ingestion, run the form extractor (Task 2.18) to generate a draft registry with `aliases` filled in and `docx_file: null`.
+
+**Step 2 — ingest the DOCX form templates.** The DOCX parser will detect them as form templates (Task 2.19).
+
+**Step 3 — manually edit** `form-registry.json` to fill in `docx_file` and `download_path` for each entry. This is a one-time setup per document batch.
+
+---
+
+## Task 2.18 — LLM form mention extractor
+
+When ingesting a PDF, scan for form mentions and generate draft registry entries automatically.
+
+Run after parsing, before chunking. Send the full document text to the LLM:
+
+```
+You are analyzing a company policy document.
+Extract all form names or template names mentioned in this document.
+For each form found, provide:
+- The official form name in English
+- All aliases or alternative names used (in any language found in the document)
+
+Respond in JSON only. No explanation. Format:
+[
+  {
+    "form_name": "Payment Request Form",
+    "aliases": ["payment request", "đề nghị thanh toán", "giấy đề nghị thanh toán"]
+  }
+]
+
+Document text:
+{fullDocumentText}
+```
+
+Rules:
+- `maxTokens: 500`
+- Strip markdown fences before parsing JSON
+- If parsing fails, log and skip — do not crash ingestion
+- Write draft entries to `data/form-registry-draft.json` with `docx_file: null`
+- Never overwrite existing `form-registry.json` automatically — drafts only
+
+After running, log a message:
+```
+[FormExtractor] Found 3 form mentions in Payment_process_V2_2023.pdf.
+Draft written to data/form-registry-draft.json — review and link docx_file manually.
+```
+
+---
+
+## Task 2.19 — DOCX form template detection
+
+When ingesting a DOCX file, detect whether it is a form template (vs a policy document).
+
+Send the first 300 words to the LLM:
+
+```
+Is this document a blank form template that employees fill in,
+or is it a policy/procedure document?
+Reply with ONLY one word: FORM or POLICY
+```
+
+Rules:
+- `maxTokens: 5`
+- If `FORM` → tag all chunks with `is_form_template: true` in Qdrant payload
+- If `POLICY` → proceed normally, `is_form_template: false`
+- Log result: `[FormDetector] Payment_request_form.docx detected as: FORM`
+
+Updated Qdrant payload for form template chunks:
+
+```json
+{
+  "source_file": "Payment_request_form.docx",
+  "page": 1,
+  "chunk_index": 0,
+  "chunk_type": "text",
+  "file_type": "docx",
+  "agent": "ELCA_GENERAL",
+  "image_path": "",
+  "is_form_template": true
+}
+```
+
+---
+
+## Task 2.20 — Static template file serving
+
+Serve DOCX form templates as downloadable files.
+
+Store all form DOCX files in `data/templates/` and serve via static file middleware:
+
+```csharp
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(templatesStorePath),
+    RequestPath = "/templates"
+});
+```
+
+Add to `appsettings.json`:
+```json
+{
+  "Ingestion": {
+    "TemplatesStorePath": "../../data/templates"
+  }
+}
+```
+
+Verification: access `/templates/Payment_request_form.docx` in browser — file downloads correctly.
 
 ---
 
@@ -281,6 +510,11 @@ Verification: upload a PDF with images, access `/images/{docName}/page1_img0.png
 - Each supported file type ingests without error
 - Text chunks appear in Qdrant with correct `source_file`, `page`, `agent`, `chunk_type`
 - Image caption chunks appear with non-empty `text` and valid `image_path`
+- Logos and decorative images are filtered out (verified manually)
 - Manual and auto agent tagging both work correctly
 - Image files accessible via `/images/` static route
+- Form template DOCX files accessible via `/templates/` static route
+- `form-registry-draft.json` generated after ingesting a PDF with form mentions
+- DOCX form templates tagged with `is_form_template: true` in Qdrant
+- `form-registry.json` manually completed with `docx_file` links
 - Chunker strategy selected and noted in `PROGRESS.md`

@@ -13,12 +13,12 @@ public class OllamaVisionProvider(
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly VisionProviderOptions _options = options.Value;
 
-    public async Task<string> DescribeImageAsync(byte[] imageBytes, string surroundingText, CancellationToken ct = default)
+    public async Task<string> DescribeImageAsync(byte[] imageBytes, string surroundingText, int maxTokens = 300, string mimeType = "image/png", CancellationToken ct = default)
     {
         try
         {
             var endpoint = _options.Ollama;
-            var prompt = $"This image is from a company policy document. The surrounding text says: {surroundingText}. Describe what this image shows in 2-3 sentences. Focus on content relevant to company policies.";
+            var prompt = surroundingText;
             var body = new
             {
                 model = endpoint.Model,
@@ -31,6 +31,7 @@ public class OllamaVisionProvider(
                         images = new[] { Convert.ToBase64String(imageBytes) }
                     }
                 },
+                options = new { num_predict = maxTokens },
                 stream = false
             };
 

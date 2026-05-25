@@ -1,15 +1,17 @@
 # ELCA Policy Chatbot — Claude Code Context
 
-> This file is loaded automatically every session. Keep it open alongside `docs/PROGRESS.md` and the current phase file.
+> This file is loaded automatically every session. Always load `PROGRESS.md` alongside it.
+
+---
 
 ## Session rules
 
-- Read `PROGRESS.md` at the start of every session to see what's done
-- Work only on the current phase — do not jump ahead
-- At the end of every session, verify completed work and update 
-  checkboxes in `PROGRESS.md`
-- Do not mark a checkbox unless the feature is verified working end-to-end
-- If a task is partially done, leave it unchecked and add a note below it
+> - Read `PROGRESS.md` at the start of every session to find the next unchecked task
+> - Work only on the current phase — do not jump ahead
+> - At the end of every session, verify completed work and update checkboxes in `PROGRESS.md`
+> - Do not mark a checkbox unless the feature is verified working end-to-end
+> - If a task is partially done, leave it unchecked and add a note in the session notes table
+> - Never modify checkboxes in phase files — only update `PROGRESS.md`
 
 ---
 
@@ -20,7 +22,7 @@
 | Name | ELCA Policy Chatbot |
 | Goal | Chatbot for employees to query company policies in EN, VI, FR, DE |
 | Timeline | 12 days |
-| Status | See `docs/PROGRESS.md` |
+| Status | See `PROGRESS.md` |
 
 ---
 
@@ -31,9 +33,62 @@
 | Backend | .NET 10 / ASP.NET Core |
 | Vector DB | Qdrant (Docker, port 6333) |
 | Embedding | BAAI/bge-m3 via HuggingFace TEI (Docker, port 8080) |
-| LLM | Llama 3.3 70B — company OpenWebUI (switchable to Ollama) |
+| LLM — text | gemma4:31b-cloud via Ollama (primary) |
+| LLM — vision | gemma4:31b-cloud via Ollama (image captioning at ingestion) |
+| LLM — fallback | OpenWebUI (llama33-70b) |
 | Frontend | React JS (Vite + TypeScript) |
 | MCP | ModelContextProtocol NuGet (Phase 6 only) |
+
+---
+
+## Model config (`appsettings.json`)
+
+```json
+{
+  "LlmProvider": {
+    "Active": "Ollama",
+    "OpenWebUI": {
+      "BaseUrl": "https://your-company-openwebui.com",
+      "ApiKey": "your-key",
+      "Model": "llama33-70b"
+    },
+    "Ollama": {
+      "BaseUrl": "http://localhost:11434",
+      "ApiKey": "",
+      "Model": "gemma4:31b-cloud"
+    }
+  },
+  "VisionProvider": {
+    "Active": "Ollama",
+    "Ollama": {
+      "BaseUrl": "http://localhost:11434",
+      "ApiKey": "",
+      "Model": "gemma4:31b-cloud"
+    }
+  },
+  "Embedding": {
+    "BaseUrl": "http://localhost:8080",
+    "BatchSize": 32
+  },
+  "Qdrant": {
+    "Host": "localhost",
+    "Port": 6333,
+    "CollectionName": "policy_docs"
+  },
+  "Ingestion": {
+    "ImageStorePath": "../../data/images",
+    "TempPath": "../../data/temp",
+    "TemplatesStorePath": "../../data/templates",
+    "FormRegistryPath": "../../data/form-registry.json",
+    "ChunkingStrategy": "ParagraphBoundary",
+    "ChunkSizeWords": 400,
+    "ChunkOverlapWords": 80,
+    "MinimumChunkWords": 30
+  }
+}
+```
+
+> `LlmProvider` and `VisionProvider` use the same model — gemma4:31b-cloud is multimodal. Two separate configs so they can be swapped independently without code changes.
 
 ---
 
@@ -42,9 +97,9 @@
 ```
 policy-bot/
   .claude/
-    CLAUDE.md                  ← this file (always loaded)
+    CLAUDE.md              ← this file (auto-loaded every session)
+    PROGRESS.md            ← master checklist (auto-loaded every session)
   docs/
-    PROGRESS.md                ← master checklist — always load this
     phases/
       phase-1-infrastructure.md
       phase-2-ingestion.md
@@ -53,21 +108,23 @@ policy-bot/
       phase-5-polish.md
       phase-6-agents-mcp.md
     reference/
-      architecture.md          ← service structure, data flow
-      data-models.md           ← ParsedChunk, ChatRequest, Qdrant payload
-      api-contracts.md         ← all endpoint specs
-      chunking-strategies.md   ← 3 chunking approaches + evaluation guide
-      intent-classification.md ← hybrid classifier, prompts, response templates
-      llm-providers.md         ← ILlmProvider, OpenWebUI vs Ollama config
+      data-models.md
+      api-contracts.md
+      chunking-strategies.md
+      intent-classification.md
+      llm-providers.md
   docker-compose.yml
   src/
-    API/                       ← .NET 10 ASP.NET Core project
-  Web/                         ← React frontend
+    API/                   ← .NET 10 ASP.NET Core
+  Web/                     ← React frontend
   data/
-    images/                    ← extracted document images (gitignored)
-    temp/                      ← temp files during ingestion (gitignored)
-  qdrant_data/                 ← Qdrant persistence (gitignored)
-  tei_cache/                   ← bge-m3 model cache (gitignored)
+    images/                ← extracted + captioned images (gitignored)
+    temp/                  ← temp conversion files (gitignored)
+    templates/             ← downloadable DOCX form templates (NOT gitignored)
+    form-registry.json     ← manual mapping: form name → aliases → docx file
+    form-registry-draft.json ← auto-generated draft from LLM extractor (review before use)
+  qdrant_data/             ← Qdrant persistence (gitignored)
+  tei_cache/               ← bge-m3 model cache (gitignored)
 ```
 
 ---
@@ -88,9 +145,11 @@ Services/
       FileConversionService.cs
     TextChunkerService.cs
     DocumentClassifierService.cs
+    ImageCaptioningService.cs      ← calls vision provider per image
   Query/
     IntentClassifierService.cs
     LanguageDetectionService.cs
+    FormRegistryService.cs             ← loads form-registry.json, lookup by file/alias
     PromptBuilderService.cs
     ChatOrchestrator.cs
   Shared/
@@ -98,7 +157,9 @@ Services/
     VectorStoreService.cs
 Providers/
   ILlmProvider.cs
+  IVisionProvider.cs
   OpenAICompatibleProvider.cs
+  OllamaVisionProvider.cs
 Models/
   ParsedChunk.cs
   ChatRequest.cs
@@ -108,48 +169,94 @@ Models/
 
 ---
 
+## Image captioning flow (used in Phase 2)
+
+When a PDF or DOCX page contains images:
+
+1. Extract image bytes from page
+2. Skip images smaller than 100×100 px (decorative)
+3. Save image to `/data/images/{docName}/page{N}_img{I}.png`
+4. Call `IVisionProvider.DescribeImageAsync(imageBytes, surroundingText)` → caption string
+5. Create a dedicated **image caption chunk**:
+   - `Text` = caption
+   - `ChunkType` = `"image_caption"`
+   - `ImagePath` = `/images/{docName}/page{N}_img{I}.png`
+   - Same `SourceFile`, `PageNumber`, `Agent` as surrounding text chunks
+6. Embed caption and upsert to Qdrant alongside text chunks
+
+This makes images **searchable by content**. At retrieval time, if a top result has `chunk_type: "image_caption"`, the frontend shows the image.
+
+---
+
+## Qdrant payload schema
+
+Text chunk:
+```json
+{
+  "source_file": "leave_policy.pdf",
+  "page": 3,
+  "chunk_index": 1,
+  "chunk_type": "text",
+  "file_type": "pdf",
+  "agent": "ELCA_HR",
+  "image_path": ""
+}
+```
+
+Image caption chunk:
+```json
+{
+  "source_file": "company_overview.pdf",
+  "page": 3,
+  "chunk_index": 0,
+  "chunk_type": "image_caption",
+  "file_type": "pdf",
+  "agent": "ELCA_GENERAL",
+  "image_path": "/images/company_overview/page3_img0.png"
+}
+```
+
+---
+
 ## Coding conventions
 
-- Use `IAsyncEnumerable<string>` for all streaming operations
-- Register all services via DI in `Program.cs`
-- Config in `appsettings.json` + `IOptions<T>` — never hardcode URLs or keys
-- Pass `CancellationToken` through all async methods
+- `IAsyncEnumerable<string>` for all streaming operations
+- All services registered via DI in `Program.cs`
+- Config via `appsettings.json` + `IOptions<T>` — never hardcode URLs or keys
+- `CancellationToken` passed through all async methods
 - `maxTokens: 10` for all classifier LLM calls (single-word responses)
 - Default to `POLICY_QUERY` if intent classifier returns unexpected value
 - Default to `ELCA_GENERAL` if document/router classifier returns unexpected value
-- Chunk metadata (source file, page, agent, image paths) must travel with the chunk through the entire pipeline
+- Chunk metadata (`source_file`, `page`, `agent`, `chunk_type`, `image_path`) must travel intact through parse → chunk → embed → upsert
+- Use `ClosedXML` for Excel — not EPPlus (license concern)
 
 ---
 
 ## How to load context per session
 
-**Always load:**
-- `.claude/CLAUDE.md` (auto-loaded)
-- `docs/PROGRESS.md`
+**Auto-loaded every session:**
+- `.claude/CLAUDE.md`
+- `.claude/PROGRESS.md`
 
 **Load for current phase only:**
-- `docs/phases/phase-N-*.md`
+- `@docs/phases/phase-N-*.md`
 
 **Load reference files as needed:**
-- Working on chunking → `docs/reference/chunking-strategies.md`
-- Working on query pipeline → `docs/reference/intent-classification.md`
-- Working on LLM calls → `docs/reference/llm-providers.md`
-- Checking models/schemas → `docs/reference/data-models.md`
-- Checking endpoints → `docs/reference/api-contracts.md`
+- Chunking → `@docs/reference/chunking-strategies.md`
+- Query pipeline → `@docs/reference/intent-classification.md`
+- LLM/vision calls → `@docs/reference/llm-providers.md`
+- Models/schemas → `@docs/reference/data-models.md`
+- Endpoints → `@docs/reference/api-contracts.md`
 
 ---
 
 ## Docker services
 
 ```bash
-# Start all services
 docker compose up -d
 
-# Health checks
-curl http://localhost:6333/healthz   # Qdrant
-curl http://localhost:8080/health    # TEI
+curl http://localhost:6333/healthz    # Qdrant — expects healthy JSON
+curl http://localhost:8080/health     # TEI — expects OK
 
-# Stop
 docker compose down
 ```
-

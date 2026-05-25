@@ -49,6 +49,7 @@ tei_cache/
 # Ingestion runtime data
 data/images/
 data/temp/
+data/test/
 
 # Logs
 logs/

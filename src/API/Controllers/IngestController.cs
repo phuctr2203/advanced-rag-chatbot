@@ -22,6 +22,13 @@ public class IngestController(PdfParserService pdfParserService, FileConversionS
         return Ok(chunks);
     }
 
+    [HttpPost("analyze/pdf-images")]
+    public async Task<IActionResult> AnalyzePdfImages(IFormFile file, CancellationToken ct)
+    {
+        var filePath = await SaveTempFileAsync(file, ct);
+        return Ok(pdfParserService.AnalyzeImages(filePath));
+    }
+
     [HttpPost("convert/pptx")]
     public async Task<IActionResult> ConvertPptx(IFormFile file, CancellationToken ct)
     {

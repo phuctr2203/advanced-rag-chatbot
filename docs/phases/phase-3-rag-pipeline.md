@@ -182,22 +182,88 @@ After streaming completes, extract citations from the full response:
 - Find line starting with `SOURCES:`
 - Parse entries like `filename.pdf (page 3)`
 - For each citation, look up matching chunks from the search results
-- Build `List<SourceRef>` with `File`, `Page`, `ChunkType`, `ImagePath`
-- If chunk is `image_caption`, `ImagePath` is populated — frontend will show the image
+- Build `List<SourceRef>` with `File`, `Page`, `ChunkType`, `ImagePath`, `FormDownload`
+- If chunk is `image_caption` → populate `ImagePath`
+- If chunk has `is_form_template: true` → call `FormRegistryService.FindDownload()` to populate `FormDownload`
+
+Updated `SourceRef` model:
 
 ```csharp
 public class SourceRef
 {
     public string File { get; set; }
     public int Page { get; set; }
-    public string ChunkType { get; set; }   // "text" or "image_caption"
-    public string ImagePath { get; set; }   // populated for image_caption chunks
+    public string ChunkType { get; set; }      // "text" or "image_caption"
+    public string ImagePath { get; set; }       // populated for image_caption chunks
+    public FormDownloadRef? FormDownload { get; set; }  // populated for form templates
+}
+
+public class FormDownloadRef
+{
+    public string FormName { get; set; }        // e.g. "Payment Request Form"
+    public string DownloadPath { get; set; }    // e.g. "/templates/Payment_request_form.docx"
 }
 ```
 
 ---
 
-## Task 3.9 — POST /api/chat SSE endpoint
+## Task 3.9 — FormRegistryService
+
+Implement `Services/Query/FormRegistryService.cs`.
+
+Loads `data/form-registry.json` at startup and provides lookup by filename or alias.
+
+```csharp
+public class FormRegistryService
+{
+    // Load registry from data/form-registry.json at startup
+    public void Load(string registryPath);
+
+    // Look up by source filename — used when a retrieved chunk has is_form_template: true
+    public FormDownloadRef? FindByFile(string sourceFile);
+
+    // Look up by alias — used to match LLM answer text mentioning a form name
+    public FormDownloadRef? FindByAlias(string text);
+}
+```
+
+Rules:
+- Load once at startup via `IHostedService` or in `Program.cs`
+- `FindByAlias` does case-insensitive substring matching against all aliases
+- If `form-registry.json` is missing or malformed, log a warning and continue — do not crash startup
+- Register as singleton in DI
+
+---
+
+## Task 3.10 — Form download enrichment in ChatOrchestrator
+
+After citation parsing, enrich each `SourceRef` with form download info if applicable.
+
+Two enrichment paths:
+
+**Path A — chunk tagged as form template:**
+```csharp
+if (chunk.Payload["is_form_template"] == true)
+{
+    sourceRef.FormDownload = _formRegistry.FindByFile(chunk.Payload["source_file"]);
+}
+```
+
+**Path B — LLM answer text mentions a form name:**
+```csharp
+var download = _formRegistry.FindByAlias(fullAnswerText);
+if (download != null && !sources.Any(s => s.FormDownload?.FormName == download.FormName))
+{
+    // Append a standalone download ref not tied to a specific source chunk
+    downloadRefs.Add(download);
+}
+```
+
+Both paths can fire on the same response — Path A is more precise, Path B catches mentions in the answer text that weren't in retrieved chunks.
+
+---
+
+## Task 3.11 — POST /api/chat SSE endpoint
 
 ```csharp
 [HttpPost("chat")]
@@ -214,16 +280,30 @@ public async Task Chat([FromBody] ChatRequest request, CancellationToken ct)
 }
 ```
 
-Final SSE event sends structured sources JSON:
+Final SSE event sends structured sources JSON including form downloads:
+
 ```
-data: [SOURCES]{"sources":[{"file":"leave_policy.pdf","page":3,"chunkType":"text","imagePath":""}]}
+data: [SOURCES]{
+  "sources": [
+    {
+      "file": "Payment_process_V2_2023.pdf",
+      "page": 5,
+      "chunkType": "text",
+      "imagePath": "",
+      "formDownload": {
+        "formName": "Payment Request Form",
+        "downloadPath": "/templates/Payment_request_form.docx"
+      }
+    }
+  ]
+}
 ```
 
-Frontend listens for the `[SOURCES]` prefix to separate the answer stream from citations.
+Frontend listens for `[SOURCES]` prefix to separate stream from citations.
 
 ---
 
-## Task 3.10 — End-to-end verification
+## Task 3.12 — End-to-end verification
 
 Test matrix — same question in all 4 languages:
 
@@ -240,6 +320,10 @@ Verify for each:
 - `SOURCES` present with correct filename and page
 - Image caption chunks surface with populated `ImagePath`
 
+Also verify form download flow:
+- Ask "How do I submit a payment request?" → answer includes citation + `formDownload` with download path
+- Confirm `/templates/Payment_request_form.docx` is downloadable from the returned path
+
 Also test intent handling:
 - "Hi" → `SMALLTALK` response, no Qdrant call
 - "What is the capital of France?" → `OUT_OF_SCOPE` response
@@ -253,6 +337,9 @@ Also test intent handling:
 - Intent classifier correctly handles smalltalk, policy queries, out-of-scope
 - Vector search returns relevant chunks with correct metadata
 - LLM responds in the same language as the question
-- Citations parse correctly including image_caption chunks
+- Citations parse correctly including `image_caption` chunks
+- `FormRegistryService` loads `form-registry.json` at startup without errors
+- Form download refs appear in SSE sources when answer relates to a form template
+- DOCX template downloads correctly via `/templates/` path
 - SSE endpoint streams tokens in real time
 - All 4 language test cases pass

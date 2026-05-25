@@ -17,12 +17,12 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 1.9 VectorStoreService connected to Qdrant
 
 ## Phase 2 — Document ingestion pipeline
-
-- [ ] 2.1 PDF parser — text extraction per page
-- [ ] 2.2 PDF parser — image extraction + saved to disk
-- [ ] 2.3 PDF parser — image captioning via vision provider
+ 
+- [x] 2.1 PDF parser — text extraction per page
+- [x] 2.2 `ImageCaptioningService` — multi-layer filter (size, aspect ratio, vision classify, caption)
+- [x] 2.3 PDF parser — image extraction using `ImageCaptioningService`
 - [ ] 2.4 PPTX → PDF conversion via LibreOffice
-- [ ] 2.5 DOCX parser — text + image extraction
+- [ ] 2.5 DOCX parser — text + image extraction using `ImageCaptioningService`
 - [ ] 2.6 DOC → DOCX conversion via LibreOffice
 - [ ] 2.7 XLSX parser — form field reconstruction as readable prose
 - [ ] 2.8 Text chunker — Strategy A: FixedSize
@@ -34,9 +34,15 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [ ] 2.14 Ingestion orchestrator wired end-to-end
 - [ ] 2.15 `POST /api/ingest` endpoint working
 - [ ] 2.16 Static image serving configured (`/images/...`)
+- [ ] 2.17 `form-registry.json` schema created and manually completed
+- [ ] 2.18 LLM form mention extractor — draft registry generated from PDF ingestion
+- [ ] 2.19 DOCX form template detection — `is_form_template` tagged in Qdrant
+- [ ] 2.20 Static template serving configured (`/templates/...`)
 
+> **Chunker strategy chosen:** _(agent fills this in after task 2.11)_
+ 
 ## Phase 3 — RAG query pipeline
-
+ 
 - [ ] 3.1 Language detection service
 - [ ] 3.2 Intent classifier — fast path
 - [ ] 3.3 Intent classifier — LLM fallback
@@ -44,9 +50,12 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [ ] 3.5 Vector search (no agent filter)
 - [ ] 3.6 Prompt builder
 - [ ] 3.7 LLM streaming service
-- [ ] 3.8 Source citation parser
-- [ ] 3.9 `POST /api/chat` SSE endpoint
-- [ ] 3.10 End-to-end RAG verified in all 4 languages
+- [ ] 3.8 Source citation parser — updated `SourceRef` with `FormDownload`
+- [ ] 3.9 `FormRegistryService` — loads `form-registry.json`, lookup by file and alias
+- [ ] 3.10 Form download enrichment in `ChatOrchestrator`
+- [ ] 3.11 `POST /api/chat` SSE endpoint — sources include form download refs
+- [ ] 3.12 End-to-end RAG verified in all 4 languages + form download verified
+
 
 ## Phase 4 — Frontend
 
@@ -74,3 +83,13 @@ Start only after Phase 5 is complete.
 - [ ] 6.3 Tool-calling loop
 - [ ] 6.4 MCP server configured
 - [ ] 6.5 MCP tools exposed and externally tested
+
+---
+ 
+## Session notes
+ 
+> Agent appends notes here after each session.
+ 
+| Date | Session summary | Next task |
+|---|---|---|
+| | | |

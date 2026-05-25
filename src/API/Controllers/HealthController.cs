@@ -53,7 +53,7 @@ public class HealthController(
     {
         using var stream = new MemoryStream();
         await image.CopyToAsync(stream, ct);
-        var response = await visionProvider.DescribeImageAsync(stream.ToArray(), "Vision provider verification image.", ct);
+        var response = await visionProvider.DescribeImageAsync(stream.ToArray(), "Vision provider verification image.", ct: ct);
         return Ok(new { response = response.Trim(), success = !string.IsNullOrWhiteSpace(response) });
     }
 }
