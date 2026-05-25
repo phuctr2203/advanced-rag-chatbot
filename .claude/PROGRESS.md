@@ -21,7 +21,7 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 2.1 PDF parser — text extraction per page
 - [x] 2.2 `ImageCaptioningService` — multi-layer filter (size, aspect ratio, vision classify, caption)
 - [x] 2.3 PDF parser — image extraction using `ImageCaptioningService`
-- [ ] 2.4 PPTX → PDF conversion via LibreOffice
+- [x] 2.4 PPTX → PDF conversion via LibreOffice
 - [ ] 2.5 DOCX parser — text + image extraction using `ImageCaptioningService`
 - [ ] 2.6 DOC → DOCX conversion via LibreOffice
 - [ ] 2.7 XLSX parser — form field reconstruction as readable prose

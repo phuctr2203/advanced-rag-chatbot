@@ -32,7 +32,7 @@ public class FileConversionService(IOptions<IngestionOptions> options, ILogger<F
     {
         var startInfo = new ProcessStartInfo
         {
-            FileName = "libreoffice",
+            FileName = GetLibreOfficeExecutable(),
             RedirectStandardError = true,
             RedirectStandardOutput = true,
             UseShellExecute = false
@@ -54,5 +54,12 @@ public class FileConversionService(IOptions<IngestionOptions> options, ILogger<F
             logger.LogError("LibreOffice conversion failed. stdout: {Stdout}; stderr: {Stderr}", stdout, stderr);
             throw new InvalidOperationException($"LibreOffice conversion failed with exit code {process.ExitCode}.");
         }
+    }
+
+    private static string GetLibreOfficeExecutable()
+    {
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var windowsPath = Path.Combine(programFiles, "LibreOffice", "program", "soffice.exe");
+        return File.Exists(windowsPath) ? windowsPath : "libreoffice";
     }
 }
