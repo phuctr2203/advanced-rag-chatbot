@@ -6,7 +6,7 @@ namespace PolicyBot.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class IngestController(PdfParserService pdfParserService, FileConversionService fileConversionService) : ControllerBase
+public class IngestController(PdfParserService pdfParserService, DocxParserService docxParserService, FileConversionService fileConversionService) : ControllerBase
 {
     [HttpPost]
     public IActionResult Ingest(IFormFile file, [FromQuery] string? agent)
@@ -39,6 +39,27 @@ public class IngestController(PdfParserService pdfParserService, FileConversionS
         {
             pdfPath,
             pages = chunks.Select(chunk => chunk.PageNumber).Distinct().Count(),
+            chunks
+        });
+    }
+
+    [HttpPost("parse/docx")]
+    public async Task<ActionResult<IReadOnlyList<ParsedChunk>>> ParseDocx(IFormFile file, CancellationToken ct)
+    {
+        var filePath = await SaveTempFileAsync(file, ct);
+        var chunks = await docxParserService.ParseAsync(filePath, file.FileName, ct: ct);
+        return Ok(chunks);
+    }
+
+    [HttpPost("convert/doc")]
+    public async Task<IActionResult> ConvertDoc(IFormFile file, CancellationToken ct)
+    {
+        var filePath = await SaveTempFileAsync(file, ct);
+        var docxPath = await fileConversionService.ToDocxAsync(filePath, ct);
+        var chunks = await docxParserService.ParseAsync(docxPath, file.FileName, ct: ct);
+        return Ok(new
+        {
+            docxPath,
             chunks
         });
     }

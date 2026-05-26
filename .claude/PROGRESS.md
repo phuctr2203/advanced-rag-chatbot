@@ -22,8 +22,8 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 2.2 `ImageCaptioningService` — multi-layer filter (size, aspect ratio, vision classify, caption)
 - [x] 2.3 PDF parser — image extraction using `ImageCaptioningService`
 - [x] 2.4 PPTX → PDF conversion via LibreOffice
-- [ ] 2.5 DOCX parser — text + image extraction using `ImageCaptioningService`
-- [ ] 2.6 DOC → DOCX conversion via LibreOffice
+- [x] 2.5 DOCX parser — text + image extraction using `ImageCaptioningService`
+- [x] 2.6 DOC → DOCX conversion via LibreOffice
 - [ ] 2.7 XLSX parser — form field reconstruction as readable prose
 - [ ] 2.8 Text chunker — Strategy A: FixedSize
 - [ ] 2.9 Text chunker — Strategy B: ParagraphBoundary
