@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using PolicyBot.Api.Models;
+using PolicyBot.Api.Services.Ingestion;
 using PolicyBot.Api.Services.Ingestion.Parsers;
 
 namespace PolicyBot.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class IngestController(PdfParserService pdfParserService, DocxParserService docxParserService, XlsxParserService xlsxParserService, FileConversionService fileConversionService) : ControllerBase
+public class IngestController(PdfParserService pdfParserService, DocxParserService docxParserService, XlsxParserService xlsxParserService, TextChunkerService textChunkerService, FileConversionService fileConversionService) : ControllerBase
 {
     [HttpPost]
     public IActionResult Ingest(IFormFile file, [FromQuery] string? agent)
@@ -70,6 +71,12 @@ public class IngestController(PdfParserService pdfParserService, DocxParserServi
         var filePath = await SaveTempFileAsync(file, ct);
         var chunks = await xlsxParserService.ParseAsync(filePath, file.FileName, ct: ct);
         return Ok(chunks);
+    }
+
+    [HttpPost("chunk/fixed-size")]
+    public ActionResult<IReadOnlyList<ParsedChunk>> ChunkFixedSize(IReadOnlyList<ParsedChunk> chunks)
+    {
+        return Ok(textChunkerService.ChunkFixedSize(chunks));
     }
 
     private static async Task<string> SaveTempFileAsync(IFormFile file, CancellationToken ct)

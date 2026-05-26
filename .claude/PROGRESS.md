@@ -25,7 +25,7 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 2.5 DOCX parser — text + image extraction using `ImageCaptioningService`
 - [x] 2.6 DOC → DOCX conversion via LibreOffice
 - [x] 2.7 XLSX parser — form field reconstruction as readable prose
-- [ ] 2.8 Text chunker — Strategy A: FixedSize
+- [x] 2.8 Text chunker — Strategy A: FixedSize
 - [ ] 2.9 Text chunker — Strategy B: ParagraphBoundary
 - [ ] 2.10 Text chunker — Strategy C: SentenceWindow
 - [ ] 2.11 Chunker evaluation — strategy chosen, reason noted below
