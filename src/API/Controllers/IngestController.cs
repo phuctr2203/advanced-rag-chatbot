@@ -7,12 +7,41 @@ namespace PolicyBot.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class IngestController(PdfParserService pdfParserService, DocxParserService docxParserService, XlsxParserService xlsxParserService, TextChunkerService textChunkerService, FileConversionService fileConversionService) : ControllerBase
+public class IngestController(
+    DocumentIngestionService documentIngestionService,
+    PdfParserService pdfParserService,
+    DocxParserService docxParserService,
+    XlsxParserService xlsxParserService,
+    TextChunkerService textChunkerService,
+    FileConversionService fileConversionService) : ControllerBase
 {
     [HttpPost]
-    public IActionResult Ingest(IFormFile file, [FromQuery] string? agent)
+    public async Task<IActionResult> Ingest(IFormFile file, [FromQuery] string? agent, CancellationToken ct)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new { error = "Full ingestion pipeline starts in Phase 2.13." });
+        if (file.Length == 0)
+        {
+            return BadRequest(new { error = "Upload a non-empty document." });
+        }
+
+        var filePath = await SaveTempFileAsync(file, ct);
+        try
+        {
+            var result = await documentIngestionService.IngestAsync(filePath, file.FileName, agent, ct);
+            return Ok(new
+            {
+                message = $"{result.FileName} ingested successfully",
+                agent = result.Agent,
+                chunks = result.ChunkCount
+            });
+        }
+        catch (NotSupportedException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
+        catch (ArgumentException exception) when (exception.ParamName == "agent")
+        {
+            return BadRequest(new { error = exception.Message });
+        }
     }
 
     [HttpPost("parse/pdf")]

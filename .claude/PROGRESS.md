@@ -28,18 +28,18 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 2.8 Text chunker — Strategy A: FixedSize
 - [x] 2.9 Text chunker — Strategy B: ParagraphBoundary
 - [x] 2.10 Text chunker — Strategy C: SentenceWindow
-- [ ] 2.11 Chunker evaluation — strategy chosen, reason noted below
-- [ ] 2.12 Document classifier — manual agent via API param
-- [ ] 2.13 Document classifier — LLM auto-classify fallback
-- [ ] 2.14 Ingestion orchestrator wired end-to-end
-- [ ] 2.15 `POST /api/ingest` endpoint working
+- [x] 2.11 Chunker evaluation — strategy chosen, reason noted below
+- [x] 2.12 Document classifier — manual agent via API param
+- [x] 2.13 Document classifier — LLM auto-classify fallback
+- [x] 2.14 Ingestion orchestrator wired end-to-end
+- [x] 2.15 `POST /api/ingest` endpoint working
 - [ ] 2.16 Static image serving configured (`/images/...`)
 - [ ] 2.17 `form-registry.json` schema created and manually completed
 - [ ] 2.18 LLM form mention extractor — draft registry generated from PDF ingestion
 - [ ] 2.19 DOCX form template detection — `is_form_template` tagged in Qdrant
 - [ ] 2.20 Static template serving configured (`/templates/...`)
 
-> **Chunker strategy chosen:** _(agent fills this in after task 2.11)_
+> **Chunker strategy chosen:** ParagraphBoundary — FixedSize, ParagraphBoundary, and SentenceWindow were evaluated against `policy_docs_fixed`, `policy_docs_para`, and `policy_docs_sentence` using three sample documents and five representative questions. All three averaged 4.00/5; ParagraphBoundary was selected on tie because it preserves policy paragraphs and heading-adjacent context for better answer completeness and citation readability. Full report: `docs/evaluations/chunker-evaluation-2026-05-27.md`.
  
 ## Phase 3 — RAG query pipeline
  
@@ -92,6 +92,9 @@ Start only after Phase 5 is complete.
  
 | Date | Session summary | Next task |
 |---|---|---|
+| 2026-05-27 | Implemented Task 2.14 ingestion orchestrator and Task 2.15 endpoint response/error handling; parse, classify, chunk, embed, and upsert are now wired through `DocumentIngestionService`. Verified API builds with `dotnet build --no-restore`. | 2.16 Static image serving configured (`/images/...`) |
+| 2026-05-27 | Implemented Tasks 2.12 and 2.13 with manual `agent` query param validation plus LLM fallback classification from the first 500 words; verified API builds with `dotnet build --no-restore`. | 2.14 Ingestion orchestrator wired end-to-end |
+| 2026-05-27 | Completed Task 2.11 chunker evaluation across FixedSize, ParagraphBoundary, and SentenceWindow collections; selected ParagraphBoundary. | 2.12 Document classifier — manual agent via API param |
 | 2026-05-27 | Implemented Task 2.10 SentenceWindow chunking and verified API builds with `dotnet build --no-restore`. | 2.11 Chunker evaluation |
 | 2026-05-27 | Implemented Task 2.9 ParagraphBoundary chunking and verified API builds with `dotnet build --no-restore`. | 2.10 Text chunker — Strategy C: SentenceWindow |
 | | | |

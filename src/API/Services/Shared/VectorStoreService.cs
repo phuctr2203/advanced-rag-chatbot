@@ -41,6 +41,11 @@ public class VectorStoreService
             throw new ArgumentException("Chunks and vectors must have same count.");
         }
 
+        if (chunks.Count == 0)
+        {
+            return;
+        }
+
         await EnsureCollectionAsync(ct);
 
         var points = chunks.Select((chunk, index) => new PointStruct
@@ -133,8 +138,10 @@ public class VectorStoreService
             ["source_file"] = chunk.SourceFile,
             ["page"] = chunk.PageNumber,
             ["chunk_index"] = chunk.ChunkIndex,
+            ["chunk_type"] = chunk.ChunkType,
             ["file_type"] = chunk.FileType,
             ["agent"] = chunk.Agent,
+            ["image_path"] = chunk.ImagePath,
             ["image_paths"] = string.Join('|', chunk.ImagePaths)
         };
     }
@@ -147,8 +154,10 @@ public class VectorStoreService
             SourceFile = GetString(payload, "source_file"),
             PageNumber = (int)GetInteger(payload, "page"),
             ChunkIndex = (int)GetInteger(payload, "chunk_index"),
+            ChunkType = GetString(payload, "chunk_type"),
             FileType = GetString(payload, "file_type"),
             Agent = GetString(payload, "agent"),
+            ImagePath = GetString(payload, "image_path"),
             ImagePaths = GetString(payload, "image_paths")
                 .Split('|', StringSplitOptions.RemoveEmptyEntries)
                 .ToList()
