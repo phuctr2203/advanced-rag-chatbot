@@ -11,9 +11,12 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
 
     public IReadOnlyList<ParsedChunk> Chunk(IReadOnlyList<ParsedChunk> chunks)
     {
-        return _options.ChunkingStrategy.Equals("FixedSize", StringComparison.OrdinalIgnoreCase)
-            ? ChunkFixedSize(chunks)
-            : chunks;
+        return _options.ChunkingStrategy switch
+        {
+            var strategy when strategy.Equals("FixedSize", StringComparison.OrdinalIgnoreCase) => ChunkFixedSize(chunks),
+            var strategy when strategy.Equals("ParagraphBoundary", StringComparison.OrdinalIgnoreCase) => ChunkParagraphBoundary(chunks),
+            _ => ChunkParagraphBoundary(chunks)
+        };
     }
 
     public IReadOnlyList<ParsedChunk> ChunkFixedSize(IReadOnlyList<ParsedChunk> chunks)
@@ -55,6 +58,200 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
         }
 
         return output;
+    }
+
+    public IReadOnlyList<ParsedChunk> ChunkParagraphBoundary(IReadOnlyList<ParsedChunk> chunks)
+    {
+        var output = new List<ParsedChunk>();
+        var chunkIndex = 0;
+
+        foreach (var chunk in chunks)
+        {
+            if (chunk.ChunkType.Equals("image_caption", StringComparison.OrdinalIgnoreCase))
+            {
+                output.Add(CloneChunk(chunk, chunk.Text, chunkIndex++));
+                continue;
+            }
+
+            var paragraphs = SplitParagraphsAndHeadings(chunk.Text);
+            var currentParagraphs = new List<string>();
+            var currentWordCount = 0;
+
+            foreach (var paragraph in paragraphs)
+            {
+                var paragraphWordCount = CountWords(paragraph);
+                if (paragraphWordCount == 0)
+                {
+                    continue;
+                }
+
+                if (paragraphWordCount > _options.ChunkSizeWords)
+                {
+                    FlushParagraphChunk(chunk, currentParagraphs, ref currentWordCount, output, ref chunkIndex);
+                    AddFixedSizeChunks(chunk, paragraph, output, ref chunkIndex);
+
+                    currentParagraphs = [TakeLastWords(paragraph, _options.ChunkOverlapWords)];
+                    currentWordCount = CountWords(currentParagraphs[0]);
+                    continue;
+                }
+
+                if (currentWordCount > 0 && currentWordCount + paragraphWordCount > _options.ChunkSizeWords)
+                {
+                    var overlap = BuildParagraphOverlap(currentParagraphs);
+                    FlushParagraphChunk(chunk, currentParagraphs, ref currentWordCount, output, ref chunkIndex);
+
+                    currentParagraphs = overlap.Length == 0 ? [] : [overlap];
+                    currentWordCount = CountWords(overlap);
+                }
+
+                currentParagraphs.Add(paragraph);
+                currentWordCount += paragraphWordCount;
+            }
+
+            FlushParagraphChunk(chunk, currentParagraphs, ref currentWordCount, output, ref chunkIndex);
+        }
+
+        return output;
+    }
+
+    private void AddFixedSizeChunks(ParsedChunk source, string text, List<ParsedChunk> output, ref int chunkIndex)
+    {
+        var words = GetWords(text);
+        if (words.Count < _options.MinimumChunkWords)
+        {
+            return;
+        }
+
+        var step = Math.Max(1, _options.ChunkSizeWords - _options.ChunkOverlapWords);
+        for (var start = 0; start < words.Count; start += step)
+        {
+            var chunkWords = words.Skip(start).Take(_options.ChunkSizeWords).ToList();
+            if (chunkWords.Count < _options.MinimumChunkWords)
+            {
+                continue;
+            }
+
+            output.Add(CloneChunk(source, string.Join(' ', chunkWords), chunkIndex++));
+
+            if (start + _options.ChunkSizeWords >= words.Count)
+            {
+                break;
+            }
+        }
+    }
+
+    private void FlushParagraphChunk(ParsedChunk source, List<string> paragraphs, ref int currentWordCount, List<ParsedChunk> output, ref int chunkIndex)
+    {
+        if (currentWordCount < _options.MinimumChunkWords)
+        {
+            paragraphs.Clear();
+            currentWordCount = 0;
+            return;
+        }
+
+        output.Add(CloneChunk(source, string.Join($"{Environment.NewLine}{Environment.NewLine}", paragraphs), chunkIndex++));
+        paragraphs.Clear();
+        currentWordCount = 0;
+    }
+
+    private string BuildParagraphOverlap(List<string> paragraphs)
+    {
+        if (paragraphs.Count == 0 || _options.ChunkOverlapWords <= 0)
+        {
+            return string.Empty;
+        }
+
+        var lastParagraph = paragraphs[^1];
+        var lastParagraphWordCount = CountWords(lastParagraph);
+        return lastParagraphWordCount <= _options.ChunkOverlapWords
+            ? lastParagraph
+            : TakeLastWords(lastParagraph, _options.ChunkOverlapWords);
+    }
+
+    private static List<string> SplitParagraphsAndHeadings(string text)
+    {
+        var paragraphs = new List<string>();
+        var currentLines = new List<string>();
+
+        foreach (var rawLine in Regex.Split(text, @"\r?\n"))
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0)
+            {
+                AddParagraph(paragraphs, currentLines);
+                continue;
+            }
+
+            if (IsHeadingLike(line) && currentLines.Count > 0)
+            {
+                AddParagraph(paragraphs, currentLines);
+            }
+
+            currentLines.Add(line);
+
+            if (IsHeadingLike(line))
+            {
+                AddParagraph(paragraphs, currentLines);
+            }
+        }
+
+        AddParagraph(paragraphs, currentLines);
+        return paragraphs;
+    }
+
+    private static void AddParagraph(List<string> paragraphs, List<string> currentLines)
+    {
+        if (currentLines.Count == 0)
+        {
+            return;
+        }
+
+        paragraphs.Add(string.Join(Environment.NewLine, currentLines).Trim());
+        currentLines.Clear();
+    }
+
+    private static bool IsHeadingLike(string line)
+    {
+        var words = GetWords(line);
+        if (words.Count is 0 or > 12)
+        {
+            return false;
+        }
+
+        if (Regex.IsMatch(line, @"^(\d+(\.\d+)*|[A-Z])[\).]?\s+\S+"))
+        {
+            return true;
+        }
+
+        if (Regex.IsMatch(line, @"^(Section|Policy|Procedure|Purpose|Scope|Responsibilities|Definitions)\b", RegexOptions.IgnoreCase))
+        {
+            return true;
+        }
+
+        var hasLowercase = line.Any(char.IsLower);
+        var endsWithSentencePunctuation = Regex.IsMatch(line, @"[.!?。]$");
+        return !hasLowercase && !endsWithSentencePunctuation && line.Any(char.IsLetter);
+    }
+
+    private static string TakeLastWords(string text, int wordCount)
+    {
+        if (wordCount <= 0)
+        {
+            return string.Empty;
+        }
+
+        var words = GetWords(text);
+        return string.Join(' ', words.Skip(Math.Max(0, words.Count - wordCount)));
+    }
+
+    private static int CountWords(string text)
+    {
+        return GetWords(text).Count;
+    }
+
+    private static List<string> GetWords(string text)
+    {
+        return Regex.Matches(text, @"\S+").Select(match => match.Value).ToList();
     }
 
     private static ParsedChunk CloneChunk(ParsedChunk source, string text, int chunkIndex)

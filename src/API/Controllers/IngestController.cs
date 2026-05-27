@@ -79,6 +79,12 @@ public class IngestController(PdfParserService pdfParserService, DocxParserServi
         return Ok(textChunkerService.ChunkFixedSize(chunks));
     }
 
+    [HttpPost("chunk/paragraph-boundary")]
+    public ActionResult<IReadOnlyList<ParsedChunk>> ChunkParagraphBoundary(IReadOnlyList<ParsedChunk> chunks)
+    {
+        return Ok(textChunkerService.ChunkParagraphBoundary(chunks));
+    }
+
     private static async Task<string> SaveTempFileAsync(IFormFile file, CancellationToken ct)
     {
         var tempDirectory = Path.Combine(Path.GetTempPath(), "policy-bot-uploads");
