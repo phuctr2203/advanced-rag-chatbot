@@ -15,6 +15,7 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
         {
             var strategy when strategy.Equals("FixedSize", StringComparison.OrdinalIgnoreCase) => ChunkFixedSize(chunks),
             var strategy when strategy.Equals("ParagraphBoundary", StringComparison.OrdinalIgnoreCase) => ChunkParagraphBoundary(chunks),
+            var strategy when strategy.Equals("SentenceWindow", StringComparison.OrdinalIgnoreCase) => ChunkSentenceWindow(chunks),
             _ => ChunkParagraphBoundary(chunks)
         };
     }
@@ -114,6 +115,59 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
         return output;
     }
 
+    public IReadOnlyList<ParsedChunk> ChunkSentenceWindow(IReadOnlyList<ParsedChunk> chunks)
+    {
+        var output = new List<ParsedChunk>();
+        var chunkIndex = 0;
+
+        foreach (var chunk in chunks)
+        {
+            if (chunk.ChunkType.Equals("image_caption", StringComparison.OrdinalIgnoreCase))
+            {
+                output.Add(CloneChunk(chunk, chunk.Text, chunkIndex++));
+                continue;
+            }
+
+            var sentences = SplitSentences(chunk.Text);
+            var currentSentences = new List<string>();
+            var currentWordCount = 0;
+
+            foreach (var sentence in sentences)
+            {
+                var sentenceWordCount = CountWords(sentence);
+                if (sentenceWordCount == 0)
+                {
+                    continue;
+                }
+
+                if (sentenceWordCount > _options.ChunkSizeWords)
+                {
+                    FlushSentenceChunk(chunk, currentSentences, ref currentWordCount, output, ref chunkIndex);
+                    AddFixedSizeChunks(chunk, sentence, output, ref chunkIndex);
+                    currentSentences.Clear();
+                    currentWordCount = 0;
+                    continue;
+                }
+
+                if (currentWordCount > 0 && currentWordCount + sentenceWordCount > _options.ChunkSizeWords)
+                {
+                    var overlap = BuildSentenceOverlap(currentSentences);
+                    FlushSentenceChunk(chunk, currentSentences, ref currentWordCount, output, ref chunkIndex);
+
+                    currentSentences = overlap;
+                    currentWordCount = currentSentences.Sum(CountWords);
+                }
+
+                currentSentences.Add(sentence);
+                currentWordCount += sentenceWordCount;
+            }
+
+            FlushSentenceChunk(chunk, currentSentences, ref currentWordCount, output, ref chunkIndex);
+        }
+
+        return output;
+    }
+
     private void AddFixedSizeChunks(ParsedChunk source, string text, List<ParsedChunk> output, ref int chunkIndex)
     {
         var words = GetWords(text);
@@ -154,6 +208,20 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
         currentWordCount = 0;
     }
 
+    private void FlushSentenceChunk(ParsedChunk source, List<string> sentences, ref int currentWordCount, List<ParsedChunk> output, ref int chunkIndex)
+    {
+        if (currentWordCount < _options.MinimumChunkWords)
+        {
+            sentences.Clear();
+            currentWordCount = 0;
+            return;
+        }
+
+        output.Add(CloneChunk(source, string.Join(' ', sentences), chunkIndex++));
+        sentences.Clear();
+        currentWordCount = 0;
+    }
+
     private string BuildParagraphOverlap(List<string> paragraphs)
     {
         if (paragraphs.Count == 0 || _options.ChunkOverlapWords <= 0)
@@ -166,6 +234,26 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
         return lastParagraphWordCount <= _options.ChunkOverlapWords
             ? lastParagraph
             : TakeLastWords(lastParagraph, _options.ChunkOverlapWords);
+    }
+
+    private List<string> BuildSentenceOverlap(List<string> sentences)
+    {
+        if (sentences.Count == 0)
+        {
+            return [];
+        }
+
+        var lastSentence = sentences[^1];
+        if (sentences.Count == 1)
+        {
+            return [lastSentence];
+        }
+
+        var secondLastSentence = sentences[^2];
+        var overlapWords = CountWords(secondLastSentence) + CountWords(lastSentence);
+        return overlapWords <= _options.ChunkOverlapWords
+            ? [secondLastSentence, lastSentence]
+            : [lastSentence];
     }
 
     private static List<string> SplitParagraphsAndHeadings(string text)
@@ -197,6 +285,15 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
 
         AddParagraph(paragraphs, currentLines);
         return paragraphs;
+    }
+
+    private static List<string> SplitSentences(string text)
+    {
+        return Regex
+            .Matches(text, @"[^.!?\u3002]+[.!?\u3002]+|[^.!?\u3002]+$")
+            .Select(match => Regex.Replace(match.Value, @"\s+", " ").Trim())
+            .Where(sentence => sentence.Length > 0)
+            .ToList();
     }
 
     private static void AddParagraph(List<string> paragraphs, List<string> currentLines)

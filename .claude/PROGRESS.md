@@ -27,7 +27,7 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 2.7 XLSX parser — form field reconstruction as readable prose
 - [x] 2.8 Text chunker — Strategy A: FixedSize
 - [x] 2.9 Text chunker — Strategy B: ParagraphBoundary
-- [ ] 2.10 Text chunker — Strategy C: SentenceWindow
+- [x] 2.10 Text chunker — Strategy C: SentenceWindow
 - [ ] 2.11 Chunker evaluation — strategy chosen, reason noted below
 - [ ] 2.12 Document classifier — manual agent via API param
 - [ ] 2.13 Document classifier — LLM auto-classify fallback
@@ -92,5 +92,6 @@ Start only after Phase 5 is complete.
  
 | Date | Session summary | Next task |
 |---|---|---|
+| 2026-05-27 | Implemented Task 2.10 SentenceWindow chunking and verified API builds with `dotnet build --no-restore`. | 2.11 Chunker evaluation |
 | 2026-05-27 | Implemented Task 2.9 ParagraphBoundary chunking and verified API builds with `dotnet build --no-restore`. | 2.10 Text chunker — Strategy C: SentenceWindow |
 | | | |
