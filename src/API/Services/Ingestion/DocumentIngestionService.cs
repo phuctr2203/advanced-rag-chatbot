@@ -12,6 +12,8 @@ public class DocumentIngestionService(
     TextChunkerService textChunkerService,
     FileConversionService fileConversionService,
     DocumentClassifierService documentClassifierService,
+    FormMentionExtractorService formMentionExtractorService,
+    FormTemplateDetectorService formTemplateDetectorService,
     IEmbeddingProvider embeddingProvider,
     VectorStoreService vectorStoreService,
     ILogger<DocumentIngestionService> logger)
@@ -23,12 +25,28 @@ public class DocumentIngestionService(
             throw new ArgumentException("Invalid agent value. Valid values: ELCA_HR, ELCA_GENERAL, CII_TOWER_SUPPORT.", nameof(agent));
         }
 
-        var parsedChunks = await ParseDocumentAsync(filePath, sourceFile, ct);
+        var extension = Path.GetExtension(sourceFile).ToLowerInvariant();
+        var parsedChunks = await ParseDocumentAsync(filePath, sourceFile, extension, ct);
         var resolvedAgent = await documentClassifierService.DetermineAgentAsync(parsedChunks, agent, ct);
         DocumentClassifierService.ApplyAgent(parsedChunks, resolvedAgent);
 
+        if (extension == ".pdf")
+        {
+            await formMentionExtractorService.ExtractPdfFormMentionsAsync(sourceFile, parsedChunks, resolvedAgent, ct);
+        }
+
+        if (extension is ".docx" or ".doc")
+        {
+            var isFormTemplate = await formTemplateDetectorService.DetectAsync(sourceFile, parsedChunks, ct);
+            FormTemplateDetectorService.ApplyFormTemplateTag(parsedChunks, isFormTemplate);
+        }
+
         var chunks = textChunkerService.Chunk(parsedChunks);
         DocumentClassifierService.ApplyAgent(chunks, resolvedAgent);
+        if (extension is ".docx" or ".doc")
+        {
+            FormTemplateDetectorService.ApplyFormTemplateTag(chunks, parsedChunks.Any(chunk => chunk.IsFormTemplate));
+        }
 
         if (chunks.Count == 0)
         {
@@ -58,9 +76,9 @@ public class DocumentIngestionService(
         };
     }
 
-    private async Task<IReadOnlyList<ParsedChunk>> ParseDocumentAsync(string filePath, string sourceFile, CancellationToken ct)
+    private async Task<IReadOnlyList<ParsedChunk>> ParseDocumentAsync(string filePath, string sourceFile, string extension, CancellationToken ct)
     {
-        return Path.GetExtension(sourceFile).ToLowerInvariant() switch
+        return extension switch
         {
             ".pdf" => await pdfParserService.ParseAsync(filePath, sourceFile, ct: ct),
             ".pptx" => await pdfParserService.ParseAsync(await fileConversionService.ToPdfAsync(filePath, ct), sourceFile, ct: ct),

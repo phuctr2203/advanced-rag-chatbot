@@ -1,3 +1,5 @@
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using PolicyBot.Api.Options;
 using PolicyBot.Api.Providers;
 using PolicyBot.Api.Services.Ingestion;
@@ -23,6 +25,8 @@ builder.Services.AddHttpClient<IEmbeddingProvider, EmbeddingService>();
 builder.Services.AddScoped<ImageCaptioningService>();
 builder.Services.AddScoped<TextChunkerService>();
 builder.Services.AddScoped<DocumentClassifierService>();
+builder.Services.AddScoped<FormMentionExtractorService>();
+builder.Services.AddScoped<FormTemplateDetectorService>();
 builder.Services.AddScoped<DocumentIngestionService>();
 builder.Services.AddScoped<PdfParserService>();
 builder.Services.AddScoped<DocxParserService>();
@@ -39,6 +43,24 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+var ingestionOptions = app.Services.GetRequiredService<IOptions<IngestionOptions>>().Value;
+var imageStorePath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, ingestionOptions.ImageStorePath));
+Directory.CreateDirectory(imageStorePath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imageStorePath),
+    RequestPath = "/images"
+});
+
+var templatesStorePath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, ingestionOptions.TemplatesStorePath));
+Directory.CreateDirectory(templatesStorePath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(templatesStorePath),
+    RequestPath = "/templates"
+});
+
 app.MapControllers();
 
 app.Run();

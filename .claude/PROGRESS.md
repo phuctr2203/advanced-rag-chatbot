@@ -33,11 +33,11 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 2.13 Document classifier — LLM auto-classify fallback
 - [x] 2.14 Ingestion orchestrator wired end-to-end
 - [x] 2.15 `POST /api/ingest` endpoint working
-- [ ] 2.16 Static image serving configured (`/images/...`)
-- [ ] 2.17 `form-registry.json` schema created and manually completed
-- [ ] 2.18 LLM form mention extractor — draft registry generated from PDF ingestion
-- [ ] 2.19 DOCX form template detection — `is_form_template` tagged in Qdrant
-- [ ] 2.20 Static template serving configured (`/templates/...`)
+- [x] 2.16 Static image serving configured (`/images/...`)
+- [x] 2.17 `form-registry.json` schema created and manually completed
+- [x] 2.18 LLM form mention extractor — draft registry generated from PDF ingestion
+- [x] 2.19 DOCX form template detection — `is_form_template` tagged in Qdrant
+- [x] 2.20 Static template serving configured (`/templates/...`)
 
 > **Chunker strategy chosen:** ParagraphBoundary — FixedSize, ParagraphBoundary, and SentenceWindow were evaluated against `policy_docs_fixed`, `policy_docs_para`, and `policy_docs_sentence` using three sample documents and five representative questions. All three averaged 4.00/5; ParagraphBoundary was selected on tie because it preserves policy paragraphs and heading-adjacent context for better answer completeness and citation readability. Full report: `docs/evaluations/chunker-evaluation-2026-05-27.md`.
  
@@ -92,6 +92,7 @@ Start only after Phase 5 is complete.
  
 | Date | Session summary | Next task |
 |---|---|---|
+| 2026-05-27 | Implemented Tasks 2.16-2.20: static `/images` and `/templates` serving, root `data/form-registry.json`, PDF form mention draft extraction, DOCX form template detection, and `is_form_template` Qdrant payload tagging. Verified API builds with `dotnet build --no-restore`; runtime LLM/static-file verification still needs real documents and services. | 3.1 Language detection service |
 | 2026-05-27 | Implemented Task 2.14 ingestion orchestrator and Task 2.15 endpoint response/error handling; parse, classify, chunk, embed, and upsert are now wired through `DocumentIngestionService`. Verified API builds with `dotnet build --no-restore`. | 2.16 Static image serving configured (`/images/...`) |
 | 2026-05-27 | Implemented Tasks 2.12 and 2.13 with manual `agent` query param validation plus LLM fallback classification from the first 500 words; verified API builds with `dotnet build --no-restore`. | 2.14 Ingestion orchestrator wired end-to-end |
 | 2026-05-27 | Completed Task 2.11 chunker evaluation across FixedSize, ParagraphBoundary, and SentenceWindow collections; selected ParagraphBoundary. | 2.12 Document classifier — manual agent via API param |

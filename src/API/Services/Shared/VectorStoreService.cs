@@ -142,7 +142,8 @@ public class VectorStoreService
             ["file_type"] = chunk.FileType,
             ["agent"] = chunk.Agent,
             ["image_path"] = chunk.ImagePath,
-            ["image_paths"] = string.Join('|', chunk.ImagePaths)
+            ["image_paths"] = string.Join('|', chunk.ImagePaths),
+            ["is_form_template"] = chunk.IsFormTemplate
         };
     }
 
@@ -158,6 +159,7 @@ public class VectorStoreService
             FileType = GetString(payload, "file_type"),
             Agent = GetString(payload, "agent"),
             ImagePath = GetString(payload, "image_path"),
+            IsFormTemplate = GetBool(payload, "is_form_template"),
             ImagePaths = GetString(payload, "image_paths")
                 .Split('|', StringSplitOptions.RemoveEmptyEntries)
                 .ToList()
@@ -172,5 +174,10 @@ public class VectorStoreService
     private static long GetInteger(IDictionary<string, Value> payload, string key)
     {
         return payload.TryGetValue(key, out var value) ? value.IntegerValue : 0;
+    }
+
+    private static bool GetBool(IDictionary<string, Value> payload, string key)
+    {
+        return payload.TryGetValue(key, out var value) && value.BoolValue;
     }
 }

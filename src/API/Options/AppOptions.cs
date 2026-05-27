@@ -38,6 +38,8 @@ public class QdrantOptions
 public class IngestionOptions
 {
     public string ImageStorePath { get; set; } = "../../data/images";
+    public string TemplatesStorePath { get; set; } = "../../data/templates";
+    public string DataPath { get; set; } = "../../data";
     public string TempPath { get; set; } = "../../data/temp";
     public string ChunkingStrategy { get; set; } = "ParagraphBoundary";
     public int ChunkSizeWords { get; set; } = 400;

@@ -363,7 +363,8 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
             FileType = source.FileType,
             Agent = source.Agent,
             ImagePath = source.ImagePath,
-            ImagePaths = [.. source.ImagePaths]
+            ImagePaths = [.. source.ImagePaths],
+            IsFormTemplate = source.IsFormTemplate
         };
     }
 }

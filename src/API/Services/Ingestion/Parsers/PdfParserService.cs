@@ -9,6 +9,7 @@ namespace PolicyBot.Api.Services.Ingestion.Parsers;
 public class PdfParserService(
     IOptions<IngestionOptions> options,
     ImageCaptioningService imageCaptioningService,
+    IWebHostEnvironment environment,
     ILogger<PdfParserService> logger)
 {
     private readonly IngestionOptions _options = options.Value;
@@ -111,7 +112,7 @@ public class PdfParserService(
 
     private async Task<string> SaveImageAsync(string docName, int pageNumber, int imageIndex, string extension, byte[] imageBytes, CancellationToken ct)
     {
-        var imageRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _options.ImageStorePath));
+        var imageRoot = Path.GetFullPath(Path.Combine(environment.ContentRootPath, _options.ImageStorePath));
         var sanitizedDocName = SanitizePathSegment(docName);
         var docDirectory = Path.Combine(imageRoot, sanitizedDocName);
         Directory.CreateDirectory(docDirectory);

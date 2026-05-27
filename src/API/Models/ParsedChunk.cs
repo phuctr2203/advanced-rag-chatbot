@@ -11,4 +11,5 @@ public class ParsedChunk
     public string Agent { get; set; } = "ELCA_GENERAL";
     public string ImagePath { get; set; } = string.Empty;
     public List<string> ImagePaths { get; set; } = [];
+    public bool IsFormTemplate { get; set; }
 }
