@@ -43,19 +43,18 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
  
 ## Phase 3 — RAG query pipeline
  
-- [ ] 3.1 Language detection service
-- [ ] 3.2 Intent classifier — fast path
-- [ ] 3.3 Intent classifier — LLM fallback
-- [ ] 3.4 Intent response templates (all 4 languages)
-- [ ] 3.5 Vector search (no agent filter)
-- [ ] 3.6 Prompt builder
-- [ ] 3.7 LLM streaming service
-- [ ] 3.8 Source citation parser — updated `SourceRef` with `FormDownload`
-- [ ] 3.9 `FormRegistryService` — loads `form-registry.json`, lookup by file and alias
-- [ ] 3.10 Form download enrichment in `ChatOrchestrator`
-- [ ] 3.11 `POST /api/chat` SSE endpoint — sources include form download refs
+- [x] 3.1 Language detection service
+- [x] 3.2 Intent classifier — fast path
+- [x] 3.3 Intent classifier — LLM fallback
+- [x] 3.4 Intent response templates (all 4 languages)
+- [x] 3.5 Vector search (no agent filter)
+- [x] 3.6 Prompt builder
+- [x] 3.7 LLM streaming service
+- [x] 3.8 Source citation parser — updated `SourceRef` with `FormDownload`
+- [x] 3.9 `FormRegistryService` — loads `form-registry.json`, lookup by file and alias
+- [x] 3.10 Form download enrichment in `ChatOrchestrator`
+- [x] 3.11 `POST /api/chat` SSE endpoint — sources include form download refs
 - [ ] 3.12 End-to-end RAG verified in all 4 languages + form download verified
-
 
 ## Phase 4 — Frontend
 
@@ -92,6 +91,7 @@ Start only after Phase 5 is complete.
  
 | Date | Session summary | Next task |
 |---|---|---|
+| 2026-05-28 | Implemented Phase 3 Tasks 3.1-3.11: language detection, intent classifier, static responses, query vector search, prompt builder, LLM streaming wrapper, citation parsing, form registry, form download enrichment, and SSE `/api/chat`. Verified alternate-output API build and smoke-tested `Hi` smalltalk SSE response; full RAG E2E still needs live Qdrant/LLM verification with ingested documents. | 3.12 End-to-end RAG verification |
 | 2026-05-27 | Implemented Tasks 2.16-2.20: static `/images` and `/templates` serving, root `data/form-registry.json`, PDF form mention draft extraction, DOCX form template detection, and `is_form_template` Qdrant payload tagging. Verified API builds with `dotnet build --no-restore`; runtime LLM/static-file verification still needs real documents and services. | 3.1 Language detection service |
 | 2026-05-27 | Implemented Task 2.14 ingestion orchestrator and Task 2.15 endpoint response/error handling; parse, classify, chunk, embed, and upsert are now wired through `DocumentIngestionService`. Verified API builds with `dotnet build --no-restore`. | 2.16 Static image serving configured (`/images/...`) |
 | 2026-05-27 | Implemented Tasks 2.12 and 2.13 with manual `agent` query param validation plus LLM fallback classification from the first 500 words; verified API builds with `dotnet build --no-restore`. | 2.14 Ingestion orchestrator wired end-to-end |

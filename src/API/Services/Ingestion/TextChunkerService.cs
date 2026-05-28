@@ -36,6 +36,11 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
             var words = Regex.Matches(chunk.Text, @"\S+").Select(match => match.Value).ToList();
             if (words.Count < _options.MinimumChunkWords)
             {
+                if (ShouldKeepShortChunk(chunk, words.Count))
+                {
+                    output.Add(CloneChunk(chunk, chunk.Text, chunkIndex++));
+                }
+
                 continue;
             }
 
@@ -46,6 +51,11 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
                 var wordCount = Regex.Matches(text, @"\S+").Count;
                 if (wordCount < _options.MinimumChunkWords)
                 {
+                    if (ShouldKeepShortChunk(chunk, wordCount))
+                    {
+                        output.Add(CloneChunk(chunk, text, chunkIndex++));
+                    }
+
                     continue;
                 }
 
@@ -173,6 +183,11 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
         var words = GetWords(text);
         if (words.Count < _options.MinimumChunkWords)
         {
+            if (ShouldKeepShortChunk(source, words.Count))
+            {
+                output.Add(CloneChunk(source, text, chunkIndex++));
+            }
+
             return;
         }
 
@@ -182,6 +197,11 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
             var chunkWords = words.Skip(start).Take(_options.ChunkSizeWords).ToList();
             if (chunkWords.Count < _options.MinimumChunkWords)
             {
+                if (ShouldKeepShortChunk(source, chunkWords.Count))
+                {
+                    output.Add(CloneChunk(source, string.Join(' ', chunkWords), chunkIndex++));
+                }
+
                 continue;
             }
 
@@ -198,6 +218,11 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
     {
         if (currentWordCount < _options.MinimumChunkWords)
         {
+            if (ShouldKeepShortChunk(source, currentWordCount))
+            {
+                output.Add(CloneChunk(source, string.Join($"{Environment.NewLine}{Environment.NewLine}", paragraphs), chunkIndex++));
+            }
+
             paragraphs.Clear();
             currentWordCount = 0;
             return;
@@ -212,6 +237,11 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
     {
         if (currentWordCount < _options.MinimumChunkWords)
         {
+            if (ShouldKeepShortChunk(source, currentWordCount))
+            {
+                output.Add(CloneChunk(source, string.Join(' ', sentences), chunkIndex++));
+            }
+
             sentences.Clear();
             currentWordCount = 0;
             return;
@@ -349,6 +379,11 @@ public class TextChunkerService(IOptions<IngestionOptions> options)
     private static List<string> GetWords(string text)
     {
         return Regex.Matches(text, @"\S+").Select(match => match.Value).ToList();
+    }
+
+    private static bool ShouldKeepShortChunk(ParsedChunk source, int wordCount)
+    {
+        return source.IsFormTemplate && wordCount > 0;
     }
 
     private static ParsedChunk CloneChunk(ParsedChunk source, string text, int chunkIndex)

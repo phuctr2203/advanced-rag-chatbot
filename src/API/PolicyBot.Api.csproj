@@ -17,4 +17,8 @@
     <PackageReference Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="$(NuGetPackageRoot)ntextcat\0.3.65\content\Core14.profile.xml" Link="Core14.profile.xml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using PolicyBot.Api.Models;
 using PolicyBot.Api.Options;
+using PolicyBot.Api.Providers;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using Value = Qdrant.Client.Grpc.Value;
@@ -13,10 +14,12 @@ public class VectorStoreService
     private const float MinimumScore = 0.45f;
     private readonly QdrantClient _client;
     private readonly QdrantOptions _options;
+    private readonly IEmbeddingProvider _embeddingProvider;
 
-    public VectorStoreService(IOptions<QdrantOptions> options)
+    public VectorStoreService(IOptions<QdrantOptions> options, IEmbeddingProvider embeddingProvider)
     {
         _options = options.Value;
+        _embeddingProvider = embeddingProvider;
         _client = new QdrantClient(_options.Host, _options.GrpcPort);
     }
 
@@ -97,6 +100,17 @@ public class VectorStoreService
                 Chunk = FromPayload(result.Payload)
             })
             .ToList();
+    }
+
+    public async Task<IReadOnlyList<VectorSearchResult>> SearchAsync(string query, int limit = 6, CancellationToken ct = default)
+    {
+        var embeddings = await _embeddingProvider.EmbedAsync([query], ct);
+        if (embeddings.Count == 0)
+        {
+            return [];
+        }
+
+        return await SearchAsync(embeddings[0], agent: null, limit, ct);
     }
 
     public async Task<bool> VerifyRoundTripAsync(float[] vector, CancellationToken ct = default)

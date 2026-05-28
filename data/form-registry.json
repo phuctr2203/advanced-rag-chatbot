@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "form_name": "Payment Request Form",
+    "aliases": [
+      "payment request form",
+      "request for payment",
+      "payment request",
+      "mẫu đề nghị thanh toán",
+      "giấy đề nghị thanh toán",
+      "PAYMENT REQUEST"
+    ],
+    "source_file": "Payment request form.docx",
+    "docx_file": "Payment_request_form.docx",
+    "download_path": "/templates/Payment_request_form.docx",
+    "agent": "ELCA_GENERAL"
+  }
+]
