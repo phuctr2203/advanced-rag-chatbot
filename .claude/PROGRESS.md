@@ -54,7 +54,7 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 3.9 `FormRegistryService` — loads `form-registry.json`, lookup by file and alias
 - [x] 3.10 Form download enrichment in `ChatOrchestrator`
 - [x] 3.11 `POST /api/chat` SSE endpoint — sources include form download refs
-- [ ] 3.12 End-to-end RAG verified in all 4 languages + form download verified
+- [x] 3.12 End-to-end RAG verified in all 4 languages + form download verified
 
 ## Phase 4 — Frontend
 
@@ -91,6 +91,7 @@ Start only after Phase 5 is complete.
  
 | Date | Session summary | Next task |
 |---|---|---|
+| 2026-05-29 | Completed Phase 3.12 verification: ran annual-leave RAG queries in English, Vietnamese, French, and German with structured `[SOURCES]`; verified payment request form download enrichment and `/templates/Payment_request_form.docx`; verified image-caption citation using CII emergency response flowchart with populated `imagePath` and `/images/...` serving. | 4.1 React project scaffolded |
 | 2026-05-28 | Implemented Phase 3 Tasks 3.1-3.11: language detection, intent classifier, static responses, query vector search, prompt builder, LLM streaming wrapper, citation parsing, form registry, form download enrichment, and SSE `/api/chat`. Verified alternate-output API build and smoke-tested `Hi` smalltalk SSE response; full RAG E2E still needs live Qdrant/LLM verification with ingested documents. | 3.12 End-to-end RAG verification |
 | 2026-05-27 | Implemented Tasks 2.16-2.20: static `/images` and `/templates` serving, root `data/form-registry.json`, PDF form mention draft extraction, DOCX form template detection, and `is_form_template` Qdrant payload tagging. Verified API builds with `dotnet build --no-restore`; runtime LLM/static-file verification still needs real documents and services. | 3.1 Language detection service |
 | 2026-05-27 | Implemented Task 2.14 ingestion orchestrator and Task 2.15 endpoint response/error handling; parse, classify, chunk, embed, and upsert are now wired through `DocumentIngestionService`. Verified API builds with `dotnet build --no-restore`. | 2.16 Static image serving configured (`/images/...`) |

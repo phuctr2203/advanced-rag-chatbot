@@ -45,4 +45,6 @@ public class IngestionOptions
     public int ChunkSizeWords { get; set; } = 400;
     public int ChunkOverlapWords { get; set; } = 80;
     public int MinimumChunkWords { get; set; } = 30;
+    public bool EnableImageCaptioning { get; set; } = true;
+    public int MaxImageCaptionsPerDocument { get; set; } = 0;
 }

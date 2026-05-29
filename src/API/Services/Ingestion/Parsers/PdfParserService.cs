@@ -52,6 +52,7 @@ public class PdfParserService(
         var fileName = sourceFile ?? Path.GetFileName(filePath);
         var docName = Path.GetFileNameWithoutExtension(fileName);
         var chunkIndex = 0;
+        var imageCaptionCount = 0;
 
         using var document = PdfDocument.Open(filePath);
         foreach (var page in document.GetPages())
@@ -73,10 +74,20 @@ public class PdfParserService(
                 });
             }
 
+            if (!_options.EnableImageCaptioning || HasReachedImageCaptionLimit(imageCaptionCount))
+            {
+                continue;
+            }
+
             var imageIndex = 0;
             foreach (var image in page.GetImages())
             {
                 ct.ThrowIfCancellationRequested();
+
+                if (HasReachedImageCaptionLimit(imageCaptionCount))
+                {
+                    break;
+                }
 
                 if (!TryGetImageBytes(image, out var imageBytes, out var mimeType, out var extension))
                 {
@@ -92,6 +103,7 @@ public class PdfParserService(
                 }
 
                 var imagePath = await SaveImageAsync(docName, page.Number, imageIndex++, extension, imageBytes, ct);
+                imageCaptionCount++;
                 chunks.Add(new ParsedChunk
                 {
                     Text = result.Caption,
@@ -108,6 +120,11 @@ public class PdfParserService(
         }
 
         return chunks;
+    }
+
+    private bool HasReachedImageCaptionLimit(int imageCaptionCount)
+    {
+        return _options.MaxImageCaptionsPerDocument > 0 && imageCaptionCount >= _options.MaxImageCaptionsPerDocument;
     }
 
     private async Task<string> SaveImageAsync(string docName, int pageNumber, int imageIndex, string extension, byte[] imageBytes, CancellationToken ct)

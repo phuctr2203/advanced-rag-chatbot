@@ -65,9 +65,19 @@ public class DocxParserService(ImageCaptioningService imageCaptioningService, IO
 
         var pageText = string.Join(' ', documentText);
         var imageIndex = 0;
+        if (!_options.EnableImageCaptioning)
+        {
+            return chunks;
+        }
+
         foreach (var imagePart in mainPart.ImageParts)
         {
             ct.ThrowIfCancellationRequested();
+
+            if (_options.MaxImageCaptionsPerDocument > 0 && imageIndex >= _options.MaxImageCaptionsPerDocument)
+            {
+                break;
+            }
 
             await using var stream = imagePart.GetStream();
             using var memory = new MemoryStream();
