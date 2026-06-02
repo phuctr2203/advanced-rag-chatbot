@@ -1,0 +1,57 @@
+{
+  "sourceFile": "PITDependentRegister_Form20DKTCT.docx",
+  "extension": ".docx",
+  "extractionStatus": "ok",
+  "extractionError": "",
+  "chunks": [
+    {
+      "text": "TỜ KHAI ĐĂNG KÝ NGƯỜI PHỤ THUỘC CỦA CÁ NHÂN CÓ THU NHẬP TỪ TIỀN LƯƠNG, TIỀN CÔNG",
+      "sourceFile": "PITDependentRegister_Form20DKTCT.docx",
+      "pageNumber": 1,
+      "chunkIndex": 0,
+      "chunkType": "text",
+      "fileType": "docx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    },
+    {
+      "text": "685990519050038442901905002030730190500                                                                 Đăng ký thuế                         Thay đổi thông tin đăng ký thuế                        Giảm trừ gia cảnh",
+      "sourceFile": "PITDependentRegister_Form20DKTCT.docx",
+      "pageNumber": 1,
+      "chunkIndex": 1,
+      "chunkType": "text",
+      "fileType": "docx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    },
+    {
+      "text": "(MST: Mã số thuế; CMND: Chứng minh nhân dân; CCCD: Căn cước công dân)",
+      "sourceFile": "PITDependentRegister_Form20DKTCT.docx",
+      "pageNumber": 1,
+      "chunkIndex": 2,
+      "chunkType": "text",
+      "fileType": "docx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    },
+    {
+      "text": "Tôi cam đoan số liệu khai trên là đúng và chịu trách nhiệm trước pháp luật về những số liệu đã khai./.",
+      "sourceFile": "PITDependentRegister_Form20DKTCT.docx",
+      "pageNumber": 1,
+      "chunkIndex": 3,
+      "chunkType": "text",
+      "fileType": "docx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    }
+  ],
+  "imageCandidates": []
+}

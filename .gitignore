@@ -55,6 +55,12 @@ data/test/
 logs/
 *.log
 
+# Evaluation runtime data
+evaluation/config/evaluation.local.json
+evaluation/results/
+evaluation/scripts/__pycache__/
+evaluation/.venv/
+
 # OS files
 .DS_Store
 Thumbs.db

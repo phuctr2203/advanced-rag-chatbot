@@ -1,0 +1,33 @@
+{
+  "sourceFile": "ELCA Vietnam Offices – Bicycle Parking [VN-EN].pdf",
+  "extension": ".pdf",
+  "extractionStatus": "ok",
+  "extractionError": "",
+  "chunks": [],
+  "imageCandidates": [
+    {
+      "page": 1,
+      "imageIndex": 0,
+      "width": 596,
+      "height": 842,
+      "ratio": 0.7078385,
+      "hasImageBytes": true,
+      "mimeType": "image/jpeg",
+      "byteCount": 331699,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 2,
+      "imageIndex": 0,
+      "width": 596,
+      "height": 842,
+      "ratio": 0.7078385,
+      "hasImageBytes": true,
+      "mimeType": "image/jpeg",
+      "byteCount": 154285,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    }
+  ]
+}

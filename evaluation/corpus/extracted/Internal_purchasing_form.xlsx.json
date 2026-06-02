@@ -1,0 +1,21 @@
+{
+  "sourceFile": "Internal purchasing form.xlsx",
+  "extension": ".xlsx",
+  "extractionStatus": "ok",
+  "extractionError": "",
+  "chunks": [
+    {
+      "text": "Sheet: Internal request form. Field: ELCA Information Technology (Vietnam) Ltd.. Field: CII Tower, 152 Dien Bien Phu, Binh Thanh District. Field: Ho Chi Minh City, Vietnam. Field: INTERNAL PURCHASING REQUEST. Field: Number of quotations: — Value: 01_2024. Field: Date: — Value: 14-Aug-24. Field: Department: — Value: HR C&B2. Field: Others: — Value: C&B2. Field: Purchase Category: — Value: Farewell Gift. Field: Others : — Value: Place Purchase Category if Others. Field: Charges to Expenses/DUs’ budget: — Value: Departure allowance/p.cap nghi. Field: Items — Value: Budget (vnd):. Field: # — Value: Item Description — Description: Unit — Quantity — Remark. Field: 1 — Value: Farewell Gift — Description: 2,000,000 — 1 — Deliver on 16.08.24. Field: 2. Field: 3. Field: 4. Field: 5. Field: 6. Field: *Please type any notes/comments :. Field: Farewell gift for Khánh TKL. Field: Prepared by — Value: Approved by. Field: Trần Thị Lan Anh — Value: Nguyễn Thị Hoài Linh.",
+      "sourceFile": "Internal purchasing form.xlsx",
+      "pageNumber": 1,
+      "chunkIndex": 0,
+      "chunkType": "text",
+      "fileType": "xlsx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    }
+  ],
+  "imageCandidates": []
+}

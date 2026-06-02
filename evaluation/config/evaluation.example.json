@@ -1,0 +1,22 @@
+{
+  "policyBotBaseUrl": "http://localhost:5279",
+  "qdrantBaseUrl": "http://localhost:6333",
+  "qdrantCollection": "policy_docs",
+  "teiBaseUrl": "http://localhost:8080",
+  "requestTimeoutSeconds": 180,
+  "scoreTimeoutSeconds": 300,
+  "retryCount": 2,
+  "concurrency": 1,
+  "profiles": {
+    "ollama-gpt-oss-120b": {
+      "baseUrl": "http://localhost:11434",
+      "apiKeyEnvironmentVariable": "EVALUATION_OLLAMA_API_KEY",
+      "model": "gpt-oss:120b-cloud"
+    },
+    "openwebui-gpt-oss-120b": {
+      "baseUrl": "https://your-company-openwebui.com",
+      "apiKeyEnvironmentVariable": "EVALUATION_OPENWEBUI_API_KEY",
+      "model": "inference-gpt-oss-120b"
+    }
+  }
+}

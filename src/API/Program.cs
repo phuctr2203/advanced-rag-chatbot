@@ -17,6 +17,7 @@ builder.Services.Configure<VisionProviderOptions>(builder.Configuration.GetSecti
 builder.Services.Configure<EmbeddingOptions>(builder.Configuration.GetSection("Embedding"));
 builder.Services.Configure<QdrantOptions>(builder.Configuration.GetSection("Qdrant"));
 builder.Services.Configure<IngestionOptions>(builder.Configuration.GetSection("Ingestion"));
+builder.Services.Configure<EvaluationOptions>(builder.Configuration.GetSection("Evaluation"));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -45,6 +46,7 @@ builder.Services.AddScoped<PromptBuilderService>();
 builder.Services.AddScoped<SourceCitationParser>();
 builder.Services.AddScoped<NoAnswerDetectorService>();
 builder.Services.AddScoped<ChatOrchestrator>();
+builder.Services.AddScoped<EvaluationQueryService>();
 builder.Services.AddSingleton<FormRegistryService>();
 
 var app = builder.Build();

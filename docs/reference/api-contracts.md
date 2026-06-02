@@ -163,6 +163,29 @@ Return the configured LLM, vision, and embedding provider details.
 
 Return lightweight reachability checks for the active LLM provider, TEI embedding service, and Qdrant.
 
+## POST /api/evaluation/query
+
+Run a non-streaming query through the production RAG pipeline and return trace metadata for
+offline evaluation. The route returns `404` unless `Evaluation:Enabled` is `true`.
+
+### Request
+
+```json
+{
+  "question": "What is the annual leave entitlement?"
+}
+```
+
+### Response fields
+
+- detected language, method, and confidence
+- normalized intent
+- generated answer
+- whether retrieval ran
+- no-answer status
+- retrieved chunk text, score, filename, page, chunk type, image path, agent, and form flag
+- structured sources and form downloads
+
 ## Future MCP tools
 
 ### search_policy

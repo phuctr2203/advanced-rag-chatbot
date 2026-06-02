@@ -1,0 +1,129 @@
+{
+  "sourceFile": "AcceptableUseOfAssetsVN_EN.pdf",
+  "extension": ".pdf",
+  "extractionStatus": "ok",
+  "extractionError": "",
+  "chunks": [],
+  "imageCandidates": [
+    {
+      "page": 1,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 939537,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 2,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1102878,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 3,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1429016,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 4,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1684756,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 5,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1567624,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 6,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1455697,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 7,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 2106397,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 8,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1368038,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 9,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1065760,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 10,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 123024,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    }
+  ]
+}

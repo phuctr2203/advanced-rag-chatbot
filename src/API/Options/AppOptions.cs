@@ -48,3 +48,8 @@ public class IngestionOptions
     public bool EnableImageCaptioning { get; set; } = true;
     public int MaxImageCaptionsPerDocument { get; set; } = 0;
 }
+
+public class EvaluationOptions
+{
+    public bool Enabled { get; set; }
+}

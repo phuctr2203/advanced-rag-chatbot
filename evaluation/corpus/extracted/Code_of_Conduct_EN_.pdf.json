@@ -1,0 +1,129 @@
+{
+  "sourceFile": "Code of Conduct [EN].pdf",
+  "extension": ".pdf",
+  "extractionStatus": "ok",
+  "extractionError": "",
+  "chunks": [],
+  "imageCandidates": [
+    {
+      "page": 1,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 2564775,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 2,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1915179,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 3,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 2533557,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 4,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 2923189,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 5,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 3252328,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 6,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 2944092,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 7,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1201206,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 8,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 926610,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 9,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1993423,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 10,
+      "imageIndex": 0,
+      "width": 595,
+      "height": 845,
+      "ratio": 0.70414203,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 395611,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    }
+  ]
+}

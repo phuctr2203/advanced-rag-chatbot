@@ -1,0 +1,21 @@
+{
+  "sourceFile": "CII Tower No-Smoking Policy Reminders(Vietnamese).pdf",
+  "extension": ".pdf",
+  "extractionStatus": "ok",
+  "extractionError": "",
+  "chunks": [],
+  "imageCandidates": [
+    {
+      "page": 1,
+      "imageIndex": 0,
+      "width": 596,
+      "height": 842,
+      "ratio": 0.7078385,
+      "hasImageBytes": true,
+      "mimeType": "image/jpeg",
+      "byteCount": 709773,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    }
+  ]
+}

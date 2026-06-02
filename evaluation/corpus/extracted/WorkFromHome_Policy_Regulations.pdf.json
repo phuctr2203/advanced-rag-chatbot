@@ -1,0 +1,45 @@
+{
+  "sourceFile": "WorkFromHome_Policy_Regulations.pdf",
+  "extension": ".pdf",
+  "extractionStatus": "ok",
+  "extractionError": "",
+  "chunks": [],
+  "imageCandidates": [
+    {
+      "page": 1,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1612504,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 2,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 2290371,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    },
+    {
+      "page": 3,
+      "imageIndex": 0,
+      "width": 599,
+      "height": 847,
+      "ratio": 0.7072019,
+      "hasImageBytes": true,
+      "mimeType": "image/png",
+      "byteCount": 1491332,
+      "passesSizeFilter": true,
+      "passesAspectRatioFilter": true
+    }
+  ]
+}

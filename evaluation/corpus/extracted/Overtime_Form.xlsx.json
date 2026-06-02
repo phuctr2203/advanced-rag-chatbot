@@ -1,0 +1,81 @@
+{
+  "sourceFile": "Overtime Form.xlsx",
+  "extension": ".xlsx",
+  "extractionStatus": "ok",
+  "extractionError": "",
+  "chunks": [
+    {
+      "text": "Sheet: Summary. Field: Summary. Field: How to use the Overtime Form template. Field: Purpose. Field: This template is governed by Regulations on working days and working hours. Field: It must be filled by Delivery Unit or Department heads (\"DH\" in the following). Field: It is kept and archived by the Compensation & Benefits responsible in the HR Department: Mrs. Hang (LHG) or \"HR\" in the following. Field: It only needs to be used when overtime work is planned at night, during week-ends or public holidays.. Field: Employee list. Field: Form \"Employee List\" must be filled first with the visa and name of all employees working overtime during the period. A maximum of 10 employees can be entered. In case more are necessary, use separate mission forms.\r\nThe Delivery Unit and project name must be specified.. Field: Overtime Planning. Field: 0 — Value: This form must be filled, printed and signed before the overtime work starts.. Field: 1 — Value: Fill-in the period (date from and to) that this planning covers. Field: 2 — Value: For each overtime window, enter the following:. Field: -  Visa of the employee (must be in the \"Employee List\" form). Field: -  Date. Field: -  Start time. Field: -  End time. Field: Notes:. Field: -  If the period spans across several days, enter one line per day. Field: -  The date must be within the planning period (specified in point 1 above) or it will turn red. Field: 3 — Value: Send the form to the requestor in CH and obtain approval. Field: 4 — Value: Print the form and the CH requestor's approval. Field: 5 — Value: All employees who appear in the \"Employees prior consent\" section sign. Field: 6 — Value: The DH signs. Field: 7 — Value: Submit the form together with the approval from the requestor in CH to HR both in electronic and in paper format.. Field: 8 — Value: HR will seek approval from the HR Manager and the General Director and inform the DH of the outcome. Field: 9 — Value: In case an update is necessary (employee sickness, resignation, change in business plans, etc...) that requires additional overtime work from any employee outside of normal working hours, the form must be updated and resubmitted for approval from CH, employees, HR and GD before the modified support date. \r\nOvertime  reductions or cancellations do not necessitate re-approval. \r\nLast-minute changes that cannot reasonably be pre-approved due to the urgent nature of the situation are approved by the DH the next day and communicated to HR.. Field: Overtime Actual Time. Field: 1 — Value: After the period, HR sends the \"Overtime Actual Time\" form to the DH. The form is pre-filled with the data from the approved \"Overtime Planning\" form.. Field: 2 — Value: Edit the pre-filled \"Actual Time Spent\" section if necessary (in case there are differences with the approved plan). Field: 3 — Value: Print the form. The DH signs it.. Field: 4 — Value: Submit the form to HR, both in electronic and in paper format.. Field: 5 — Value: Compensation will be paid to employees with the first payroll following the support period..",
+      "sourceFile": "Overtime Form.xlsx",
+      "pageNumber": 1,
+      "chunkIndex": 0,
+      "chunkType": "text",
+      "fileType": "xlsx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    },
+    {
+      "text": "Sheet: Employee List. Field: Overtime employee list. Field: Delivery Unit. Field: Project. Field: List of employees subject to overtime work. Field: Visa — Value: Name — Description: Role.",
+      "sourceFile": "Overtime Form.xlsx",
+      "pageNumber": 2,
+      "chunkIndex": 1,
+      "chunkType": "text",
+      "fileType": "xlsx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    },
+    {
+      "text": "Sheet: Overtime Planning. Field: Overtime Planning. Field: Delivery Unit. Field: Project. Field: Period — Value: From: — Description: To:. Field: Overtime planning. Field: Visa — Value: Date — Description: Start time — End time — Day time — Night time — Total time — Category. Field: Total hours during period: — Value: 0.00 — Description: 0.00 — 0.00. Field: Employees prior consent. Field: Visa — Value: Overtime hours during the period — Description: Signature. Field: Workday — Value: Weekend — Description: Pub. Holiday — Total — Incl. night. Field: - — Value: - — Description: - — - — -. Field: - — Value: - — Description: - — - — -. Field: - — Value: - — Description: - — - — -. Field: - — Value: - — Description: - — - — -. Field: - — Value: - — Description: - — - — -. Field: - — Value: - — Description: - — - — -. Field: - — Value: - — Description: - — - — -. Field: - — Value: - — Description: - — - — -. Field: - — Value: - — Description: - — - — -. Field: - — Value: - — Description: - — - — -. Field: By signing above, the employees consent to work at the specified dates and times, as per ELCA Vietnam's internal regulations on working days and working hours.. Field: Nguyen Thi Hoai Linh — Value: Frederic Luc Montier. Field: Department Manager — Value: Human Resources Manager — Description: General Director. Field: Date and signature — Value: Date and signature — Description: Date and signature.",
+      "sourceFile": "Overtime Form.xlsx",
+      "pageNumber": 3,
+      "chunkIndex": 2,
+      "chunkType": "text",
+      "fileType": "xlsx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    },
+    {
+      "text": "Sheet: Overtime Actual Time. Field: Overtime Actual Time Spent. Field: Delivery Unit. Field: Project. Field: Period — Value: From: — Description: 1/0/1900 — To: — 1/0/1900. Field: Overtime activity. Field: Visa — Value: Actual time spent. Field: Date — Value: Start time — Description: End time — Day time — Night time — Total time — Category. Field: Total hours during period: — Value: 0.00 — Description: 0.00. Field: Nguyen Thi Hoai Linh — Value: Frederic Luc Montier. Field: Department Manager — Value: Human Resources Manager — Description: General Director. Field: Date and signature — Value: Date and signature — Description: Date and signature.",
+      "sourceFile": "Overtime Form.xlsx",
+      "pageNumber": 4,
+      "chunkIndex": 3,
+      "chunkType": "text",
+      "fileType": "xlsx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    },
+    {
+      "text": "Sheet: Compensation. Field: Overtime Compensation. Field: Delivery Unit. Field: Project. Field: Period — Value: From: — Description: 1/0/1900 — To: — 1/0/1900. Field: Compensation calculation. Field: 150%. Field: Visa — Value: Workday — Description: Weekend — Pub. Holiday — Compensation (hours) — Compensation (hours) — Workday — Weekend — Pub. Holiday — Total — Check. Field: Day time — Value: Night time — Description: Day time — Night time — Day time — Night time — Taxable — Non-Taxable — Day time — Night time — Day time — Night time — Day time — Night time. Field: - — Value: - — Description: - — - — - — - — - — - — - — - — - — - — - — - — - — - — -. Field: - — Value: - — Description: - — - — - — - — - — - — - — - — - — - — - — - — - — - — -. Field: - — Value: - — Description: - — - — - — - — - — - — -. Field: - — Value: - — Description: - — - — - — - — - — - — -. Field: - — Value: - — Description: - — - — - — - — - — - — -. Field: - — Value: - — Description: - — - — - — - — - — - — -. Field: - — Value: - — Description: - — - — - — - — - — - — -. Field: - — Value: - — Description: - — - — - — - — - — - — -. Field: - — Value: - — Description: - — - — - — - — - — - — -. Field: - — Value: - — Description: - — - — - — - — - — - — -. Field: Total — Value: - — Description: - — -. Field: Payroll summary. Field: Visa — Value: Hours. Field: -. Field: -. Field: -. Field: -. Field: -. Field: -. Field: -. Field: -. Field: -. Field: -.",
+      "sourceFile": "Overtime Form.xlsx",
+      "pageNumber": 5,
+      "chunkIndex": 4,
+      "chunkType": "text",
+      "fileType": "xlsx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    },
+    {
+      "text": "Sheet: Parameters. Field: Hours category — Value: Description — Description: Overtime rate. Field: Workday — Value: Monday to Friday 6h00 - 22h00 VN time — Description: 150%. Field: Weekend — Value: Saturday 00h01 - Sunday 23h59 — Description: 200%. Field: Pub. Holiday — Value: Public holiday whatever the time — Description: 300%. Field: Night multiplier. Field: Workdays — Value: 150%. Field: Overtime rate / Add — Value: 120% — Description: 30%. Field: Public holidays — Value: Compensate holiday. Field: 1/1/2025 — Value: New Year's day. Field: 1/27/2025 — Value: Tet. Field: 1/28/2025 — Value: Tet. Field: 1/29/2025 — Value: Tet. Field: 1/30/2025 — Value: Tet. Field: 1/31/2025 — Value: Tet. Field: 4/7/2025 — Value: King Hung. Field: 4/30/2025 — Value: Liberation. Field: 5/1/2025 — Value: Union. Field: 9/2/2025 — Value: National day. Field: 9/1/2025 — Value: National day. Field: Delivery Unit / Department. Field: Software Engineering — Value: Pham Thi Bich Ha. Field: Software Solutions — Value: Nguyen Phuc Hau. Field: Secutix — Value: Nguyen Huy Hung. Field: iPension — Value: Vo Hoang Anh Vu. Field: ITS — Value: Nguyen Quoc Thi. Field: Others — Value: Frederic Montier. Field: Signatories. Field: HR — Value: Nguyen Thi Hoai Linh. Field: GD — Value: Frederic Luc Montier. Field: Times. Field: Midnight — Value: 0:00 — Description: -. Field: Day start — Value: 6:00 — Description: 0.25. Field: Night start — Value: 22:00 — Description: 0.92. Field: Workday start — Value: 8:00 — Description: 0.33. Field: Workday end — Value: 18:00 — Description: 0.75.",
+      "sourceFile": "Overtime Form.xlsx",
+      "pageNumber": 6,
+      "chunkIndex": 5,
+      "chunkType": "text",
+      "fileType": "xlsx",
+      "agent": "ELCA_GENERAL",
+      "imagePath": "",
+      "imagePaths": [],
+      "isFormTemplate": false
+    }
+  ],
+  "imageCandidates": []
+}

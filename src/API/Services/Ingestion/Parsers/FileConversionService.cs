@@ -40,6 +40,9 @@ public class FileConversionService(IOptions<IngestionOptions> options, IWebHostE
 
     private async Task RunLibreOfficeAsync(string format, string outputDirectory, string filePath, CancellationToken ct)
     {
+        var profileDirectory = Path.Combine(outputDirectory, "libreoffice-profile");
+        Directory.CreateDirectory(profileDirectory);
+
         var startInfo = new ProcessStartInfo
         {
             FileName = GetLibreOfficeExecutable(),
@@ -47,7 +50,11 @@ public class FileConversionService(IOptions<IngestionOptions> options, IWebHostE
             RedirectStandardOutput = true,
             UseShellExecute = false
         };
+        startInfo.ArgumentList.Add($"-env:UserInstallation={new Uri(profileDirectory).AbsoluteUri}");
         startInfo.ArgumentList.Add("--headless");
+        startInfo.ArgumentList.Add("--nologo");
+        startInfo.ArgumentList.Add("--nodefault");
+        startInfo.ArgumentList.Add("--nofirststartwizard");
         startInfo.ArgumentList.Add("--convert-to");
         startInfo.ArgumentList.Add(format);
         startInfo.ArgumentList.Add("--outdir");

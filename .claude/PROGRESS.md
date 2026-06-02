@@ -73,6 +73,16 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] E1.4 Provider/model display only — show current configured provider and model in UI
 - [x] E1.5 Provider status display only — show LLM, embedding, and Qdrant health
 
+## RAGAS Evaluation
+
+- [x] EVAL 1 Corpus audit — inspect all 44 files, extract parser output, classify canonical and supporting sources
+- [x] EVAL 2 Question draft generation — create approximately 100 grounded draft questions
+- [x] EVAL 3 Dataset validation — review references, sources, pages, language, intent, and duplicates
+- [x] EVAL 4 Evaluation query endpoint — expose trace metadata behind `Evaluation:Enabled`
+- [ ] EVAL 5 Offline RAGAS runner — run both evaluator profiles with resumable output
+- [ ] EVAL 6 DOCX report generation — export quantitative and deterministic checks
+- [ ] EVAL 7 Baseline and tuning loop — preserve baseline and compare improvements
+
 ## Phase 5 — Polish & demo prep
 
 - [ ] 5.1 Error handling for service and parsing failures
@@ -99,6 +109,11 @@ Start only after Phase 5 is complete.
  
 | Date | Session summary | Next task |
 |---|---|---|
+| 2026-06-02 | Implemented the EVAL 5 offline runner foundation: added audited Qdrant corpus preflight, resumable evaluation-endpoint trace collection, deterministic product checks, two evaluator profiles, TEI embeddings adapter, lazy RAGAS dependencies, evaluator retry and timeout handling, local config template, setup guide, and a mock smoke test that verifies collection resume behavior. Pinned `ragas==0.4.3` with compatible `langchain-community==0.3.31`, created a workspace-local Python 3.13 environment, validated all five metric constructors, and verified TEI returns 1024-dimensional vectors. The real 10-question checkpoint remains open: Qdrant currently contains 3 of 42 usable audited files, with 39 missing; the 2 known unusable legacy PIT DOC supporting forms are explicitly excluded by the audit. | Restore the complete usable Qdrant corpus, then run the required 10-question EVAL 5 smoke subset |
+| 2026-06-02 | Completed EVAL 4 evaluation query endpoint: added guarded `POST /api/evaluation/query` behind `Evaluation:Enabled`, reused production language detection, intent classification, retrieval, prompt, answer, no-answer, citation, and form-enrichment services, and returned trace metadata for offline evaluation. Verified disabled `404`, blank-request `400`, smalltalk retrieval bypass, grounded annual-leave trace with page-3 citation, and no-results suppression. | EVAL 5 offline RAGAS runner |
+| 2026-06-02 | Completed EVAL 3 dataset validation and promotion: strengthened excerpt selection to avoid table-of-contents passages, generated concise source-backed reference answers, verified source files/pages, scenario and language balance, duplicate risk, form registry behavior, and all four image-surfacing paths. Added verified captions for CII emergency, Oracle reset-password, no-smoking, and bicycle-parking images. Promoted 100 reviewed rows to `evaluation/datasets/rag-evaluation-v1.json`. Only the mapped payment-request template remains a true download expectation; other form cases are recorded as template retrieval checks. | EVAL 4 evaluation query endpoint |
+| 2026-06-02 | Completed EVAL 2 question draft generation: added a repeatable explicit-blueprint generator and validator, produced `rag-evaluation-v1.draft.json` with 100 traceable rows, balanced scenarios and languages, grounded text rows with extracted source excerpts and page references, and review keyword traces. Validation passes with 0 errors and 0 warnings. | EVAL 3 dataset validation |
+| 2026-06-02 | Completed EVAL 1 corpus audit across all 44 files in `data/test`: added a repeatable parser-backed Python exporter, generated extracted page/sheet JSON, inventory JSON, reviewed source map, and audit Markdown, classified canonical and supporting variants, identified 10 scanned/image-only PDFs, and documented 2 unusable legacy PIT DOC forms. Fixed headless LibreOffice conversion by using an isolated profile per run, recovering NDA DOC and referral PPTX extraction. | EVAL 2 question draft generation |
 | 2026-06-02 | Completed E1.4 and E1.5 provider visibility: added `GET /api/providers/current`, lightweight independent `GET /api/providers/status` reachability checks for the active LLM, TEI, and Qdrant, and a compact Documents-page provider panel with model details, health chips, and manual refresh. Verified configured Ollama model display and healthy local dependency states. | Phase 5 polish |
 | 2026-06-02 | Extended E1.3 Documents library with document deletion: added `DELETE /api/documents/{sourceFile}` to remove all Qdrant chunks for a source filename and added a confirmed delete action with loading state and library refresh in the UI. Verified builds and smoke-tested deletion with an isolated temporary Qdrant point. | E1.4 Provider/model display |
 | 2026-06-02 | Completed E1.3 Documents library: added Qdrant scroll-based `GET /api/documents`, grouped indexed chunks by `source_file`, returned agent/type/chunk/page/image/form metadata, and added the frontend document library with loading, error, empty, manual refresh, and post-upload refresh states. Verified API and frontend builds and smoke-tested the endpoint against the local Qdrant collection. | E1.4 Provider/model display |
