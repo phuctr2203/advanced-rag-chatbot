@@ -1,12 +1,10 @@
 [
-  {
+ {
     "form_name": "Payment Request Form",
     "aliases": [
-      "payment request form",
-      "request for payment",
-      "payment request",
-      "mẫu đề nghị thanh toán",
-      "giấy đề nghị thanh toán",
+      "Request for payment",
+      "Mẫu đề nghị thanh toán",
+      "GIẤY ĐỀ NGHỊ THANH TOÁN",
       "PAYMENT REQUEST"
     ],
     "source_file": "Payment request form.docx",

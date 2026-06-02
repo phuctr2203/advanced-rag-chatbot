@@ -84,7 +84,8 @@ public class LanguageDetectionService
             return "de";
         }
 
-        if (ContainsAny(normalized, ["chính sách", "nghỉ phép", "lương", "phúc lợi", "quy trình", "tăng ca", "biểu mẫu", "xin chào", "cảm ơn"]))
+        if (LooksVietnamese(normalized)
+            || ContainsAny(normalized, ["chính sách", "nghỉ phép", "lương", "phúc lợi", "quy trình", "tăng ca", "biểu mẫu", "xin chào", "cảm ơn", "tòa nhà", "toà nhà", "làm việc", "hàng ngày", "mấy giờ", "thời gian"]))
         {
             return "vi";
         }
@@ -110,6 +111,12 @@ public class LanguageDetectionService
     private static bool IsAny(string value, IReadOnlyList<string> terms)
     {
         return terms.Any(term => string.Equals(value, term, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool LooksVietnamese(string value)
+    {
+        return value.Any(character =>
+            "ăâđêôơưáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ".Contains(character, StringComparison.Ordinal));
     }
 
     private RankedLanguageIdentifier? LoadIdentifier()

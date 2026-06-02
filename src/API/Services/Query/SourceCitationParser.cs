@@ -51,10 +51,14 @@ public partial class SourceCitationParser(FormRegistryService formRegistry)
     private static VectorSearchResult? FindMatchingResult(IReadOnlyList<VectorSearchResult> searchResults, string file, int page)
     {
         var fileName = Path.GetFileName(file);
-        return searchResults.FirstOrDefault(result =>
-            result.Chunk.PageNumber == page
-            && (string.Equals(result.Chunk.SourceFile, file, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(Path.GetFileName(result.Chunk.SourceFile), fileName, StringComparison.OrdinalIgnoreCase)));
+        return searchResults
+            .Where(result =>
+                result.Chunk.PageNumber == page
+                && (string.Equals(result.Chunk.SourceFile, file, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(Path.GetFileName(result.Chunk.SourceFile), fileName, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(result => result.Chunk.ChunkType.Equals("image_caption", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(result => result.Score)
+            .FirstOrDefault();
     }
 
     [GeneratedRegex(@"(?<file>[^,:\r\n]+?\.[A-Za-z0-9]+)\s*\(page\s+(?<page>\d+)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]

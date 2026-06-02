@@ -58,12 +58,12 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 
 ## Phase 4 — Frontend
 
-- [ ] 4.1 React project scaffolded
-- [ ] 4.2 Chat UI with message history
-- [ ] 4.3 SSE streaming rendering
-- [ ] 4.4 Source citation panel
-- [ ] 4.5 Image display alongside citations
-- [ ] 4.6 Document upload UI with optional agent selector
+- [x] 4.1 React project scaffolded
+- [x] 4.2 Chat UI with message history
+- [x] 4.3 SSE streaming rendering
+- [x] 4.4 Source citation panel
+- [x] 4.5 Image display alongside citations
+- [x] 4.6 Document upload UI with optional agent selector
 
 ## Phase 5 — Polish & demo prep
 
@@ -91,6 +91,7 @@ Start only after Phase 5 is complete.
  
 | Date | Session summary | Next task |
 |---|---|---|
+| 2026-05-29 | Completed Phase 4 frontend: created Vite React TypeScript app in `Web/`, implemented Figma-inspired Chat and Documents pages, POST streaming chat via `ReadableStream`, source citations with images and form downloads, document upload with auto/manual agent selection, and Vite proxy to the API. Verified `npm run build`, chat streaming through `http://127.0.0.1:5173/api/chat`, and upload through `http://127.0.0.1:5173/api/ingest`. | 5.1 Error handling for service and parsing failures |
 | 2026-05-29 | Completed Phase 3.12 verification: ran annual-leave RAG queries in English, Vietnamese, French, and German with structured `[SOURCES]`; verified payment request form download enrichment and `/templates/Payment_request_form.docx`; verified image-caption citation using CII emergency response flowchart with populated `imagePath` and `/images/...` serving. | 4.1 React project scaffolded |
 | 2026-05-28 | Implemented Phase 3 Tasks 3.1-3.11: language detection, intent classifier, static responses, query vector search, prompt builder, LLM streaming wrapper, citation parsing, form registry, form download enrichment, and SSE `/api/chat`. Verified alternate-output API build and smoke-tested `Hi` smalltalk SSE response; full RAG E2E still needs live Qdrant/LLM verification with ingested documents. | 3.12 End-to-end RAG verification |
 | 2026-05-27 | Implemented Tasks 2.16-2.20: static `/images` and `/templates` serving, root `data/form-registry.json`, PDF form mention draft extraction, DOCX form template detection, and `is_form_template` Qdrant payload tagging. Verified API builds with `dotnet build --no-restore`; runtime LLM/static-file verification still needs real documents and services. | 3.1 Language detection service |
