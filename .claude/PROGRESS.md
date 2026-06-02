@@ -65,6 +65,14 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 4.5 Image display alongside citations
 - [x] 4.6 Document upload UI with optional agent selector
 
+## Enhancement Phase 1 — Retrieval UX, language robustness, and system visibility
+
+- [x] E1.1 Suppress sources/downloads for no-answer responses
+- [x] E1.2 Hybrid language detection — deterministic hints + NTextCat + LLM fallback
+- [x] E1.3 Documents library — backend Qdrant document listing + frontend library view
+- [x] E1.4 Provider/model display only — show current configured provider and model in UI
+- [x] E1.5 Provider status display only — show LLM, embedding, and Qdrant health
+
 ## Phase 5 — Polish & demo prep
 
 - [ ] 5.1 Error handling for service and parsing failures
@@ -91,6 +99,12 @@ Start only after Phase 5 is complete.
  
 | Date | Session summary | Next task |
 |---|---|---|
+| 2026-06-02 | Completed E1.4 and E1.5 provider visibility: added `GET /api/providers/current`, lightweight independent `GET /api/providers/status` reachability checks for the active LLM, TEI, and Qdrant, and a compact Documents-page provider panel with model details, health chips, and manual refresh. Verified configured Ollama model display and healthy local dependency states. | Phase 5 polish |
+| 2026-06-02 | Extended E1.3 Documents library with document deletion: added `DELETE /api/documents/{sourceFile}` to remove all Qdrant chunks for a source filename and added a confirmed delete action with loading state and library refresh in the UI. Verified builds and smoke-tested deletion with an isolated temporary Qdrant point. | E1.4 Provider/model display |
+| 2026-06-02 | Completed E1.3 Documents library: added Qdrant scroll-based `GET /api/documents`, grouped indexed chunks by `source_file`, returned agent/type/chunk/page/image/form metadata, and added the frontend document library with loading, error, empty, manual refresh, and post-upload refresh states. Verified API and frontend builds and smoke-tested the endpoint against the local Qdrant collection. | E1.4 Provider/model display |
+| 2026-06-02 | Completed E1.2 hybrid language detection: added `LanguageDetectionResult`, deterministic smalltalk/keyword/unicode detection, NTextCat fallback, LLM fallback for low-confidence results, scoped DI, and stricter prompt language instructions. Verified the Vietnamese building-hours query `thời gian làm việc hàng ngày của tòa nhà là mấy giờ` is handled as Vietnamese. | E1.3 Documents library |
+| 2026-06-02 | Completed E1.1 by adding deterministic `NoAnswerDetectorService` and suppressing final `[SOURCES]` payload sources/form downloads when streamed answers indicate missing context. Verified weak payment/form queries return empty sources/downloads while a grounded Oracle reset-password image query still returns an `image_caption` source with image path. | E1.2 Hybrid language detection |
+| 2026-06-02 | Added Enhancement Phase 1 plan in `docs/enhancements/enhancement-phase-1.md` and mirrored checklist in progress. Scope prioritizes E1.1 no-answer source suppression, E1.2 hybrid language detection, E1.3 document library, then E1.4 provider/model display and E1.5 provider status display. Provider switching and quota tracking are intentionally out of scope for this enhancement phase. | E1.1 Suppress sources/downloads for no-answer responses |
 | 2026-05-29 | Completed Phase 4 frontend: created Vite React TypeScript app in `Web/`, implemented Figma-inspired Chat and Documents pages, POST streaming chat via `ReadableStream`, source citations with images and form downloads, document upload with auto/manual agent selection, and Vite proxy to the API. Verified `npm run build`, chat streaming through `http://127.0.0.1:5173/api/chat`, and upload through `http://127.0.0.1:5173/api/ingest`. | 5.1 Error handling for service and parsing failures |
 | 2026-05-29 | Completed Phase 3.12 verification: ran annual-leave RAG queries in English, Vietnamese, French, and German with structured `[SOURCES]`; verified payment request form download enrichment and `/templates/Payment_request_form.docx`; verified image-caption citation using CII emergency response flowchart with populated `imagePath` and `/images/...` serving. | 4.1 React project scaffolded |
 | 2026-05-28 | Implemented Phase 3 Tasks 3.1-3.11: language detection, intent classifier, static responses, query vector search, prompt builder, LLM streaming wrapper, citation parsing, form registry, form download enrichment, and SSE `/api/chat`. Verified alternate-output API build and smoke-tested `Hi` smalltalk SSE response; full RAG E2E still needs live Qdrant/LLM verification with ingested documents. | 3.12 End-to-end RAG verification |

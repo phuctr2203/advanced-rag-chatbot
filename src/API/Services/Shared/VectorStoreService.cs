@@ -113,6 +113,87 @@ public class VectorStoreService
         return await SearchAsync(embeddings[0], agent: null, limit, ct);
     }
 
+    public async Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default)
+    {
+        await EnsureCollectionAsync(ct);
+
+        var chunks = new List<ParsedChunk>();
+        PointId? offset = null;
+
+        do
+        {
+            var response = await _client.ScrollAsync(
+                _options.CollectionName,
+                limit: 256,
+                offset: offset,
+                payloadSelector: true,
+                vectorsSelector: false,
+                cancellationToken: ct);
+
+            chunks.AddRange(response.Result.Select(point => FromPayload(point.Payload)));
+            offset = response.NextPageOffset;
+        }
+        while (offset is not null);
+
+        return chunks
+            .Where(chunk => !string.IsNullOrWhiteSpace(chunk.SourceFile))
+            .GroupBy(chunk => chunk.SourceFile, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var first = group.First();
+                return new DocumentSummary
+                {
+                    SourceFile = group.Key,
+                    Agent = first.Agent,
+                    FileType = first.FileType,
+                    ChunkCount = group.Count(),
+                    PageCount = group
+                        .Select(chunk => chunk.PageNumber)
+                        .Where(page => page > 0)
+                        .Distinct()
+                        .Count(),
+                    HasImages = group.Any(chunk =>
+                        string.Equals(chunk.ChunkType, "image_caption", StringComparison.OrdinalIgnoreCase)
+                        || !string.IsNullOrWhiteSpace(chunk.ImagePath)
+                        || chunk.ImagePaths.Count > 0),
+                    HasFormTemplate = group.Any(chunk => chunk.IsFormTemplate)
+                };
+            })
+            .OrderBy(document => document.SourceFile, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task DeleteDocumentAsync(string sourceFile, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sourceFile))
+        {
+            throw new ArgumentException("Source filename is required.", nameof(sourceFile));
+        }
+
+        await EnsureCollectionAsync(ct);
+
+        var filter = new Filter
+        {
+            Must =
+            {
+                new Condition
+                {
+                    Field = new FieldCondition
+                    {
+                        Key = "source_file",
+                        Match = new Match { Keyword = sourceFile }
+                    }
+                }
+            }
+        };
+
+        await _client.DeleteAsync(
+            _options.CollectionName,
+            filter,
+            wait: true,
+            cancellationToken: ct);
+    }
+
     public async Task<bool> VerifyRoundTripAsync(float[] vector, CancellationToken ct = default)
     {
         var chunk = new ParsedChunk

@@ -12,7 +12,8 @@ public class ChatOrchestrator(
     PromptBuilderService promptBuilder,
     LlmService llmService,
     SourceCitationParser citationParser,
-    FormRegistryService formRegistry)
+    FormRegistryService formRegistry,
+    NoAnswerDetectorService noAnswerDetector)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -21,7 +22,8 @@ public class ChatOrchestrator(
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         var message = request.Message?.Trim() ?? string.Empty;
-        var language = languageDetection.Detect(message);
+        var languageResult = await languageDetection.DetectAsync(message, ct);
+        var language = languageResult.Language;
         var intent = await intentClassifier.ClassifyAsync(message, ct);
 
         if (intent == QueryIntent.Smalltalk)
@@ -55,6 +57,12 @@ public class ChatOrchestrator(
         }
 
         var fullAnswerText = string.Concat(fullAnswer);
+        if (noAnswerDetector.IsNoAnswer(fullAnswerText))
+        {
+            yield return BuildSourcesEvent([], []);
+            yield break;
+        }
+
         var sources = citationParser.Parse(fullAnswerText, searchResults);
         var downloadRefs = BuildDownloadRefs(fullAnswerText, sources);
         yield return BuildSourcesEvent(sources, downloadRefs);

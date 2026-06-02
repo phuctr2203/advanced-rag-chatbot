@@ -37,11 +37,13 @@ builder.Services.AddScoped<DocxParserService>();
 builder.Services.AddScoped<XlsxParserService>();
 builder.Services.AddScoped<FileConversionService>();
 builder.Services.AddScoped<VectorStoreService>();
-builder.Services.AddSingleton<LanguageDetectionService>();
+builder.Services.AddHttpClient<ProviderStatusService>();
+builder.Services.AddScoped<LanguageDetectionService>();
 builder.Services.AddScoped<LlmService>();
 builder.Services.AddScoped<IntentClassifierService>();
 builder.Services.AddScoped<PromptBuilderService>();
 builder.Services.AddScoped<SourceCitationParser>();
+builder.Services.AddScoped<NoAnswerDetectorService>();
 builder.Services.AddScoped<ChatOrchestrator>();
 builder.Services.AddSingleton<FormRegistryService>();
 

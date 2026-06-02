@@ -1,4 +1,4 @@
-import type { FormDownloadRef, SourceRef, UploadAgent } from './types';
+import type { CurrentProvider, DocumentSummary, FormDownloadRef, ProviderStatus, SourceRef, UploadAgent } from './types';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
 
@@ -74,6 +74,34 @@ export async function uploadDocument(file: File, agent: UploadAgent): Promise<Up
   return response.json() as Promise<UploadResult>;
 }
 
+export async function fetchDocuments(): Promise<DocumentSummary[]> {
+  const response = await fetch(`${apiBaseUrl}/api/documents`);
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  return response.json() as Promise<DocumentSummary[]>;
+}
+
+export async function deleteDocument(sourceFile: string): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/api/documents/${encodeURIComponent(sourceFile)}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+}
+
+export async function fetchCurrentProvider(): Promise<CurrentProvider> {
+  return fetchJson<CurrentProvider>('/api/providers/current');
+}
+
+export async function fetchProviderStatus(): Promise<ProviderStatus> {
+  return fetchJson<ProviderStatus>('/api/providers/status');
+}
+
 export function toAssetUrl(path: string) {
   if (!path) {
     return '';
@@ -121,4 +149,14 @@ async function readError(response: Response) {
   } catch {
     return text;
   }
+}
+
+async function fetchJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${apiBaseUrl}${path}`);
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  return response.json() as Promise<T>;
 }

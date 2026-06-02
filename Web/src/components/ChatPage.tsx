@@ -63,6 +63,7 @@ export function ChatPage() {
                 message.id === assistantId
                   ? {
                       ...message,
+                      content: stripInlineSources(message.content),
                       sources: payload.sources,
                       formDownloads: payload.formDownloads ?? [],
                     }
@@ -159,6 +160,10 @@ export function ChatPage() {
       </div>
     </section>
   );
+}
+
+function stripInlineSources(content: string) {
+  return content.replace(/\n?\s*SOURCES\s*:.*$/is, '').trimEnd();
 }
 
 function MessageBubble({ message }: { message: ChatMessage }) {

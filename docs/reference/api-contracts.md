@@ -123,6 +123,46 @@ GET /images/leave_policy/page3_img0.png
 
 Backed by configured `Ingestion:ImageStorePath`.
 
+## GET /api/documents
+
+List documents currently indexed in Qdrant.
+
+### Success response
+
+```json
+[
+  {
+    "sourceFile": "leave_policy.pdf",
+    "agent": "ELCA_HR",
+    "fileType": "pdf",
+    "chunkCount": 42,
+    "pageCount": 6,
+    "hasImages": false,
+    "hasFormTemplate": false
+  }
+]
+```
+
+## DELETE /api/documents/{sourceFile}
+
+Delete all Qdrant chunks indexed under the selected source filename.
+
+Example:
+
+```text
+DELETE /api/documents/leave_policy.pdf
+```
+
+Successful deletion returns `204 No Content`.
+
+## GET /api/providers/current
+
+Return the configured LLM, vision, and embedding provider details.
+
+## GET /api/providers/status
+
+Return lightweight reachability checks for the active LLM provider, TEI embedding service, and Qdrant.
+
 ## Future MCP tools
 
 ### search_policy

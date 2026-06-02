@@ -1,0 +1,47 @@
+Vietnamese
+
+  thời gian làm việc hàng ngày của tòa nhà là mấy giờ
+
+  Chính sách nghỉ phép hàng năm là gì?
+
+  Làm thế nào để gửi yêu cầu thanh toán?
+
+  Quy trình giới thiệu ứng viên trên Oracle như thế nào?
+
+  English
+
+  What is the annual leave policy?
+
+  How do I submit a payment request?
+
+  What does the CII emergency response flowchart show?
+
+  How do I refer a candidate on Oracle?
+
+  French
+
+  Quelle est la politique de congé annuel?
+
+  Comment puis-je soumettre une demande de paiement?
+
+  Que montre l'organigramme d'urgence du bâtiment CII?
+
+  German
+
+  Was ist die Richtlinie für den Jahresurlaub?
+
+  Wie reiche ich eine Zahlungsanforderung ein?
+
+  Was zeigt das Notfallablaufdiagramm des CII-Gebäudes?
+
+  Smalltalk Localization
+
+  Xin chào
+
+  Bonjour
+
+  Hallo
+
+  Hi
+
+  Expected result: each answer should stay in the same language as the prompt, including no-results responses.
