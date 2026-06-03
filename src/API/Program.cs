@@ -22,6 +22,7 @@ builder.Services.AddTransient<IVisionProvider, VisionProviderFactory>();
 builder.Services.AddHttpClient<IEmbeddingProvider, EmbeddingService>();
 builder.Services.AddScoped<ImageCaptioningService>();
 builder.Services.AddScoped<PdfParserService>();
+builder.Services.AddScoped<DocxParserService>();
 builder.Services.AddScoped<FileConversionService>();
 builder.Services.AddSingleton<VectorStoreService>();
 

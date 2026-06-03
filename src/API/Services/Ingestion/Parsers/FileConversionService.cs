@@ -8,24 +8,34 @@ public class FileConversionService(IOptions<IngestionOptions> options, ILogger<F
 {
     private readonly IngestionOptions _options = options.Value;
 
-    public async Task<string> ToPdfAsync(string filePath, CancellationToken ct = default)
+    public Task<string> ToPdfAsync(string filePath, CancellationToken ct = default)
+    {
+        return ConvertAsync(filePath, "pdf", ct);
+    }
+
+    public Task<string> ToDocxAsync(string filePath, CancellationToken ct = default)
+    {
+        return ConvertAsync(filePath, "docx", ct);
+    }
+
+    private async Task<string> ConvertAsync(string filePath, string format, CancellationToken ct)
     {
         var tempRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _options.TempPath));
         Directory.CreateDirectory(tempRoot);
 
-        var outputDirectory = Path.Combine(tempRoot, Path.GetFileNameWithoutExtension(filePath) + "_pdf");
+        var outputDirectory = Path.Combine(tempRoot, Path.GetFileNameWithoutExtension(filePath) + "_" + format);
         Directory.CreateDirectory(outputDirectory);
 
-        await RunLibreOfficeAsync("pdf", outputDirectory, filePath, ct);
+        await RunLibreOfficeAsync(format, outputDirectory, filePath, ct);
 
-        var expectedPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(filePath) + ".pdf");
+        var expectedPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(filePath) + "." + format);
         if (File.Exists(expectedPath))
         {
             return expectedPath;
         }
 
-        var converted = Directory.GetFiles(outputDirectory, "*.pdf").FirstOrDefault();
-        return converted ?? throw new FileNotFoundException("LibreOffice did not produce a PDF file.", expectedPath);
+        var converted = Directory.GetFiles(outputDirectory, "*." + format).FirstOrDefault();
+        return converted ?? throw new FileNotFoundException($"LibreOffice did not produce a {format.ToUpperInvariant()} file.", expectedPath);
     }
 
     private async Task RunLibreOfficeAsync(string format, string outputDirectory, string filePath, CancellationToken ct)
