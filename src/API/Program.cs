@@ -24,6 +24,8 @@ builder.Services.AddTransient<IVisionProvider, VisionProviderFactory>();
 builder.Services.AddHttpClient<IEmbeddingProvider, EmbeddingService>();
 builder.Services.AddSingleton<ConfiguredPathResolver>();
 builder.Services.AddScoped<UploadedDocumentStorageService>();
+builder.Services.AddScoped<TemplateStorageService>();
+builder.Services.AddScoped<FormTemplateDetectorService>();
 builder.Services.AddScoped<ImageCaptioningService>();
 builder.Services.AddScoped<PdfParserService>();
 builder.Services.AddScoped<DocxParserService>();
@@ -57,6 +59,14 @@ app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(imageStorePath),
     RequestPath = "/images"
+});
+
+var templatesStorePath = pathResolver.TemplatesStorePath;
+Directory.CreateDirectory(templatesStorePath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(templatesStorePath),
+    RequestPath = "/templates"
 });
 
 app.MapControllers();
