@@ -5,10 +5,10 @@ using PolicyBot.Api.Options;
 
 namespace PolicyBot.Api.Providers;
 
-public class OllamaVisionProvider(
+public class OpenWebUIVisionProvider(
     HttpClient httpClient,
     IOptions<VisionProviderOptions> options,
-    ILogger<OllamaVisionProvider> logger) : IVisionProvider
+    ILogger<OpenWebUIVisionProvider> logger) : IVisionProvider
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly VisionProviderOptions _options = options.Value;
@@ -17,7 +17,7 @@ public class OllamaVisionProvider(
     {
         try
         {
-            var endpoint = _options.Ollama;
+            var endpoint = _options.OpenWebUI;
             var prompt = surroundingText;
             var body = new
             {
@@ -27,15 +27,22 @@ public class OllamaVisionProvider(
                     new
                     {
                         role = "user",
-                        content = prompt,
-                        images = new[] { Convert.ToBase64String(imageBytes) }
+                        content = new object[]
+                        {
+                            new { type = "text", text = prompt },
+                            new
+                            {
+                                type = "image_url",
+                                image_url = new { url = $"data:{mimeType};base64,{Convert.ToBase64String(imageBytes)}" }
+                            }
+                        }
                     }
                 },
-                options = new { num_predict = maxTokens },
+                max_tokens = maxTokens,
                 stream = false
             };
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(endpoint.BaseUrl.TrimEnd('/') + "/"), "api/chat"))
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(endpoint.BaseUrl.TrimEnd('/') + "/"), "v1/chat/completions"))
             {
                 Content = new StringContent(JsonSerializer.Serialize(body, JsonOptions), Encoding.UTF8, "application/json")
             };
@@ -55,6 +62,7 @@ public class OllamaVisionProvider(
             await using var stream = await response.Content.ReadAsStreamAsync(ct);
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
             return document.RootElement
+                .GetProperty("choices")[0]
                 .GetProperty("message")
                 .GetProperty("content")
                 .GetString() ?? string.Empty;

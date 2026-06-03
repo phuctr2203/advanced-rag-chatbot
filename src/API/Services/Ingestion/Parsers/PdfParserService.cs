@@ -13,6 +13,38 @@ public class PdfParserService(
 {
     private readonly IngestionOptions _options = options.Value;
 
+    public IReadOnlyList<object> AnalyzeImages(string filePath)
+    {
+        var results = new List<object>();
+        using var document = PdfDocument.Open(filePath);
+        foreach (var page in document.GetPages())
+        {
+            var imageIndex = 0;
+            foreach (var image in page.GetImages())
+            {
+                var hasImageBytes = TryGetImageBytes(image, out var imageBytes, out var mimeType, out _);
+                var width = (int)Math.Round(image.Bounds.Width);
+                var height = (int)Math.Round(image.Bounds.Height);
+                var ratio = height == 0 ? 0 : (float)width / height;
+                results.Add(new
+                {
+                    page = page.Number,
+                    imageIndex = imageIndex++,
+                    width,
+                    height,
+                    ratio,
+                    hasImageBytes,
+                    mimeType,
+                    byteCount = imageBytes.Length,
+                    passesSizeFilter = width >= 100 && height >= 100,
+                    passesAspectRatioFilter = ratio <= 5.0f && ratio >= 0.2f
+                });
+            }
+        }
+
+        return results;
+    }
+
     public async Task<IReadOnlyList<ParsedChunk>> ParseAsync(string filePath, string? sourceFile = null, string agent = "ELCA_GENERAL", CancellationToken ct = default)
     {
         var chunks = new List<ParsedChunk>();
@@ -45,26 +77,23 @@ public class PdfParserService(
             {
                 ct.ThrowIfCancellationRequested();
 
-                if (image.Bounds.Width < 100 || image.Bounds.Height < 100)
+                if (!TryGetImageBytes(image, out var imageBytes, out var mimeType, out var extension))
                 {
                     continue;
                 }
 
-                if (!image.TryGetPng(out var imageBytes))
+                var width = (int)Math.Round(image.Bounds.Width);
+                var height = (int)Math.Round(image.Bounds.Height);
+                var result = await imageCaptioningService.ProcessImageAsync(imageBytes, width, height, fileName, page.Number, pageText, mimeType, ct);
+                if (result is null)
                 {
                     continue;
                 }
 
-                var imagePath = await SaveImageAsync(docName, page.Number, imageIndex++, imageBytes, ct);
-                var caption = await imageCaptioningService.CaptionAsync(imageBytes, fileName, page.Number, pageText, ct);
-                if (string.IsNullOrWhiteSpace(caption))
-                {
-                    continue;
-                }
-
+                var imagePath = await SaveImageAsync(docName, page.Number, imageIndex++, extension, imageBytes, ct);
                 chunks.Add(new ParsedChunk
                 {
-                    Text = caption,
+                    Text = result.Caption,
                     SourceFile = fileName,
                     PageNumber = page.Number,
                     ChunkIndex = chunkIndex++,
@@ -80,17 +109,46 @@ public class PdfParserService(
         return chunks;
     }
 
-    private async Task<string> SaveImageAsync(string docName, int pageNumber, int imageIndex, byte[] imageBytes, CancellationToken ct)
+    private async Task<string> SaveImageAsync(string docName, int pageNumber, int imageIndex, string extension, byte[] imageBytes, CancellationToken ct)
     {
         var imageRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _options.ImageStorePath));
-        var docDirectory = Path.Combine(imageRoot, SanitizePathSegment(docName));
+        var sanitizedDocName = SanitizePathSegment(docName);
+        var docDirectory = Path.Combine(imageRoot, sanitizedDocName);
         Directory.CreateDirectory(docDirectory);
 
-        var fileName = $"page{pageNumber}_img{imageIndex}.png";
+        var fileName = $"page{pageNumber}_img{imageIndex}{extension}";
         var physicalPath = Path.Combine(docDirectory, fileName);
         await File.WriteAllBytesAsync(physicalPath, imageBytes, ct);
 
-        return $"/images/{SanitizePathSegment(docName)}/{fileName}";
+        return $"/images/{sanitizedDocName}/{fileName}";
+    }
+
+    private static bool TryGetImageBytes(UglyToad.PdfPig.Content.IPdfImage image, out byte[] imageBytes, out string mimeType, out string extension)
+    {
+        if (image.TryGetPng(out imageBytes))
+        {
+            mimeType = "image/png";
+            extension = ".png";
+            return true;
+        }
+
+        if (IsJpeg(image.RawBytes))
+        {
+            imageBytes = image.RawBytes.ToArray();
+            mimeType = "image/jpeg";
+            extension = ".jpg";
+            return true;
+        }
+
+        imageBytes = [];
+        mimeType = string.Empty;
+        extension = string.Empty;
+        return false;
+    }
+
+    private static bool IsJpeg(IReadOnlyList<byte> bytes)
+    {
+        return bytes.Count >= 4 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[^2] == 0xFF && bytes[^1] == 0xD9;
     }
 
     private static string SanitizePathSegment(string value)

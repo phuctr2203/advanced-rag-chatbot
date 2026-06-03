@@ -1,17 +1,15 @@
-using Microsoft.Extensions.Options;
-using PolicyBot.Api.Options;
-
 namespace PolicyBot.Api.Providers;
 
-public class VisionProviderFactory(OllamaVisionProvider ollamaProvider, IOptions<VisionProviderOptions> options) : IVisionProvider
+public class VisionProviderFactory(
+    IServiceProvider serviceProvider,
+    Microsoft.Extensions.Options.IOptions<Options.VisionProviderOptions> options) : IVisionProvider
 {
-    public Task<string> DescribeImageAsync(byte[] imageBytes, string surroundingText, CancellationToken ct = default)
+    public Task<string> DescribeImageAsync(byte[] imageBytes, string surroundingText, int maxTokens = 300, string mimeType = "image/png", CancellationToken ct = default)
     {
-        if (!options.Value.Active.Equals("Ollama", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Phase 1 supports Ollama as the active vision provider.");
-        }
+        IVisionProvider provider = options.Value.Active.Equals("OpenWebUI", StringComparison.OrdinalIgnoreCase)
+            ? serviceProvider.GetRequiredService<OpenWebUIVisionProvider>()
+            : serviceProvider.GetRequiredService<OllamaVisionProvider>();
 
-        return ollamaProvider.DescribeImageAsync(imageBytes, surroundingText, ct);
+        return provider.DescribeImageAsync(imageBytes, surroundingText, maxTokens, mimeType, ct);
     }
 }
