@@ -2,6 +2,7 @@ using PolicyBot.Api.Services.Ingestion.Chunking;
 using PolicyBot.Api.Services.Ingestion.Classification;
 using PolicyBot.Api.Services.Ingestion.Images;
 using PolicyBot.Api.Services.Ingestion.Ocr;
+using PolicyBot.Api.Services.Ingestion.Orchestration;
 using PolicyBot.Api.Services.Ingestion.Parsers;
 using PolicyBot.Api.Services.Ingestion.Storage;
 
@@ -26,6 +27,7 @@ public static class IngestionServiceCollectionExtensions
         services.AddScoped<DocxParserService>();
         services.AddScoped<XlsxParserService>();
         services.AddScoped<FileConversionService>();
+        services.AddScoped<DocumentIngestionService>();
 
         return services;
     }

@@ -125,7 +125,10 @@ public class VectorStoreService(IOptions<QdrantOptions> options) : IVectorStoreS
             ["chunk_type"] = chunk.ChunkType,
             ["file_type"] = chunk.FileType,
             ["agent"] = chunk.Agent,
-            ["image_path"] = chunk.ImagePath
+            ["image_path"] = chunk.ImagePath,
+            ["image_paths"] = string.Join('|', chunk.ImagePaths),
+            ["is_form_template"] = chunk.IsFormTemplate,
+            ["template_path"] = chunk.TemplatePath
         };
     }
 
@@ -140,7 +143,12 @@ public class VectorStoreService(IOptions<QdrantOptions> options) : IVectorStoreS
             ChunkType = GetString(payload, "chunk_type"),
             FileType = GetString(payload, "file_type"),
             Agent = GetString(payload, "agent"),
-            ImagePath = GetString(payload, "image_path")
+            ImagePath = GetString(payload, "image_path"),
+            ImagePaths = GetString(payload, "image_paths")
+                .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList(),
+            IsFormTemplate = GetBoolean(payload, "is_form_template"),
+            TemplatePath = GetString(payload, "template_path")
         };
     }
 
@@ -152,5 +160,10 @@ public class VectorStoreService(IOptions<QdrantOptions> options) : IVectorStoreS
     private static long GetInteger(IDictionary<string, Value> payload, string key)
     {
         return payload.TryGetValue(key, out var value) ? value.IntegerValue : 0;
+    }
+
+    private static bool GetBoolean(IDictionary<string, Value> payload, string key)
+    {
+        return payload.TryGetValue(key, out var value) && value.BoolValue;
     }
 }

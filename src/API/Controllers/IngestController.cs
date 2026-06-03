@@ -28,7 +28,7 @@ public class IngestController(
             return invalidAgent;
         }
 
-        return StatusCode(StatusCodes.Status501NotImplemented, new { error = "Full ingestion pipeline starts in Phase 2.14." });
+        return StatusCode(StatusCodes.Status501NotImplemented, new { error = "Full ingest endpoint starts in Phase 2.15." });
     }
 
     [HttpPost("parse/pdf")]

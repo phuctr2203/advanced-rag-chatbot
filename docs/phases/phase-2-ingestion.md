@@ -494,6 +494,13 @@ Implementation note:
 9. Return { filename, agent, chunkCount }
 ```
 
+Implementation note:
+- `DocumentIngestionService` lives under `Services/Ingestion/Orchestration`.
+- The orchestrator accepts a `StoredDocument`, so upload persistence and SHA-256 dedupe remain owned by `UploadedDocumentStorageService`.
+- DOC, DOCX, and XLSX template detection/storage are preserved before chunking; template metadata is re-applied after chunking.
+- Qdrant payload now includes the enhanced metadata needed by later UI/features: `image_paths`, `is_form_template`, and `template_path`.
+- The public `POST /api/ingest` endpoint is wired in task 2.15.
+
 ---
 
 ## Task 2.15 — Ingest endpoint
