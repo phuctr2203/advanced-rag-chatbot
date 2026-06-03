@@ -30,6 +30,7 @@ builder.Services.AddSingleton<ConfiguredPathResolver>();
 builder.Services.AddScoped<UploadedDocumentStorageService>();
 builder.Services.AddScoped<TemplateStorageService>();
 builder.Services.AddScoped<FormTemplateDetectorService>();
+builder.Services.AddScoped<DocumentClassifierService>();
 builder.Services.AddScoped<TextChunkerService>();
 builder.Services.AddScoped<ImageCaptioningService>();
 builder.Services.AddScoped<ImageStorageService>();

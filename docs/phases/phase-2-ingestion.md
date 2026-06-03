@@ -470,6 +470,11 @@ Rules:
 - Unexpected response defaults to `ELCA_GENERAL`
 - Log chosen category
 
+Implementation note:
+- `DocumentClassifierService` owns manual validation and LLM fallback classification.
+- Parser and conversion test endpoints accept optional `?agent=` now so classification can be verified before the full ingestion orchestrator is added.
+- The full `POST /api/ingest` endpoint remains part of tasks 2.14-2.15.
+
 ---
 
 ## Task 2.14 — Ingestion orchestrator

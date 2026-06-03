@@ -16,21 +16,33 @@ public class IngestController(
     FileConversionService fileConversionService,
     UploadedDocumentStorageService documentStorageService,
     FormTemplateDetectorService formTemplateDetectorService,
+    DocumentClassifierService documentClassifierService,
     TextChunkerService textChunkerService,
     TemplateStorageService templateStorageService) : ControllerBase
 {
     [HttpPost]
     public IActionResult Ingest(IFormFile file, [FromQuery] string? agent)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented, new { error = "Full ingestion pipeline starts in Phase 2.13." });
+        if (InvalidAgentResponse(agent) is { } invalidAgent)
+        {
+            return invalidAgent;
+        }
+
+        return StatusCode(StatusCodes.Status501NotImplemented, new { error = "Full ingestion pipeline starts in Phase 2.14." });
     }
 
     [HttpPost("parse/pdf")]
-    public async Task<IActionResult> ParsePdf(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ParsePdf(IFormFile file, [FromQuery] string? agent, CancellationToken ct)
     {
+        if (InvalidAgentResponse(agent) is { } invalidAgent)
+        {
+            return invalidAgent;
+        }
+
         var document = await documentStorageService.SaveAsync(file, ct);
         var chunks = await pdfParserService.ParseAsync(document.PhysicalPath, document.OriginalFileName, ct: ct);
-        return Ok(ToParseResponse(document, chunks));
+        var resolvedAgent = await ResolveAgentAndApplyAsync(chunks, agent, ct);
+        return Ok(ToParseResponse(document, chunks, agent: resolvedAgent));
     }
 
     [HttpPost("analyze/pdf-images")]
@@ -45,14 +57,21 @@ public class IngestController(
     }
 
     [HttpPost("convert/pptx")]
-    public async Task<IActionResult> ConvertPptx(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ConvertPptx(IFormFile file, [FromQuery] string? agent, CancellationToken ct)
     {
+        if (InvalidAgentResponse(agent) is { } invalidAgent)
+        {
+            return invalidAgent;
+        }
+
         var document = await documentStorageService.SaveAsync(file, ct);
         var pdfPath = await fileConversionService.ToPdfAsync(document.PhysicalPath, ct);
         var chunks = await pdfParserService.ParseAsync(pdfPath, document.OriginalFileName, ct: ct);
+        var resolvedAgent = await ResolveAgentAndApplyAsync(chunks, agent, ct);
         return Ok(new
         {
             document = ToDocumentResponse(document),
+            agent = resolvedAgent,
             pdfPath,
             pages = chunks.Select(chunk => chunk.PageNumber).Distinct().Count(),
             chunks
@@ -60,38 +79,57 @@ public class IngestController(
     }
 
     [HttpPost("parse/docx")]
-    public async Task<IActionResult> ParseDocx(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ParseDocx(IFormFile file, [FromQuery] string? agent, CancellationToken ct)
     {
+        if (InvalidAgentResponse(agent) is { } invalidAgent)
+        {
+            return invalidAgent;
+        }
+
         var document = await documentStorageService.SaveAsync(file, ct);
         var chunks = await docxParserService.ParseAsync(document.PhysicalPath, document.OriginalFileName, ct: ct);
+        var resolvedAgent = await ResolveAgentAndApplyAsync(chunks, agent, ct);
         var template = await StoreTemplateIfDetectedAsync(document.PhysicalPath, document.OriginalFileName, chunks, ct);
-        return Ok(ToParseResponse(document, chunks, template));
+        return Ok(ToParseResponse(document, chunks, template, resolvedAgent));
     }
 
     [HttpPost("convert/doc")]
-    public async Task<IActionResult> ConvertDoc(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ConvertDoc(IFormFile file, [FromQuery] string? agent, CancellationToken ct)
     {
+        if (InvalidAgentResponse(agent) is { } invalidAgent)
+        {
+            return invalidAgent;
+        }
+
         var document = await documentStorageService.SaveAsync(file, ct);
         var docxPath = await fileConversionService.ToDocxAsync(document.PhysicalPath, ct);
         var chunks = await docxParserService.ParseAsync(docxPath, document.OriginalFileName, ct: ct);
+        var resolvedAgent = await ResolveAgentAndApplyAsync(chunks, agent, ct);
         var templateFileName = Path.ChangeExtension(document.OriginalFileName, ".docx");
         var template = await StoreTemplateIfDetectedAsync(docxPath, templateFileName, chunks, ct);
         return Ok(new
         {
             document = ToDocumentResponse(document),
             template = ToTemplateResponse(template),
+            agent = resolvedAgent,
             docxPath,
             chunks
         });
     }
 
     [HttpPost("parse/xlsx")]
-    public async Task<IActionResult> ParseXlsx(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ParseXlsx(IFormFile file, [FromQuery] string? agent, CancellationToken ct)
     {
+        if (InvalidAgentResponse(agent) is { } invalidAgent)
+        {
+            return invalidAgent;
+        }
+
         var document = await documentStorageService.SaveAsync(file, ct);
         var chunks = await xlsxParserService.ParseAsync(document.PhysicalPath, document.OriginalFileName, ct: ct);
+        var resolvedAgent = await ResolveAgentAndApplyAsync(chunks, agent, ct);
         var template = await StoreTemplateIfDetectedAsync(document.PhysicalPath, document.OriginalFileName, chunks, ct);
-        return Ok(ToParseResponse(document, chunks, template));
+        return Ok(ToParseResponse(document, chunks, template, resolvedAgent));
     }
 
     [HttpPost("chunk")]
@@ -147,12 +185,34 @@ public class IngestController(
         return template;
     }
 
-    private static object ToParseResponse(StoredDocument document, IReadOnlyList<ParsedChunk> chunks, StoredTemplate? template = null)
+    private async Task<string> ResolveAgentAndApplyAsync(IReadOnlyList<ParsedChunk> chunks, string? requestedAgent, CancellationToken ct)
+    {
+        var resolvedAgent = await documentClassifierService.DetermineAgentAsync(chunks, requestedAgent, ct);
+        DocumentClassifierService.ApplyAgent(chunks, resolvedAgent);
+        return resolvedAgent;
+    }
+
+    private BadRequestObjectResult? InvalidAgentResponse(string? agent)
+    {
+        if (string.IsNullOrWhiteSpace(agent) || DocumentClassifierService.IsValidAgent(agent))
+        {
+            return null;
+        }
+
+        return BadRequest(new { error = "Invalid agent. Valid values are ELCA_HR, ELCA_GENERAL, CII_TOWER_SUPPORT." });
+    }
+
+    private static object ToParseResponse(
+        StoredDocument document,
+        IReadOnlyList<ParsedChunk> chunks,
+        StoredTemplate? template = null,
+        string? agent = null)
     {
         return new
         {
             document = ToDocumentResponse(document),
             template = ToTemplateResponse(template),
+            agent = agent ?? chunks.FirstOrDefault()?.Agent ?? DocumentClassifierService.DefaultAgent,
             chunks
         };
     }
