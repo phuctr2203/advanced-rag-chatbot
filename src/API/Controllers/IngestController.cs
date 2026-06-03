@@ -88,11 +88,12 @@ public class IngestController(
     {
         var document = await documentStorageService.SaveAsync(file, ct);
         var chunks = await xlsxParserService.ParseAsync(document.PhysicalPath, document.OriginalFileName, ct: ct);
-        return Ok(ToParseResponse(document, chunks));
+        var template = await StoreTemplateIfDetectedAsync(document.PhysicalPath, document.OriginalFileName, chunks, ct);
+        return Ok(ToParseResponse(document, chunks, template));
     }
 
     private async Task<StoredTemplate?> StoreTemplateIfDetectedAsync(
-        string docxPath,
+        string sourcePath,
         string fileName,
         IReadOnlyList<ParsedChunk> chunks,
         CancellationToken ct)
@@ -104,7 +105,7 @@ public class IngestController(
             return null;
         }
 
-        var template = await templateStorageService.SaveAsync(docxPath, fileName, ct);
+        var template = await templateStorageService.SaveAsync(sourcePath, fileName, ct);
         foreach (var chunk in chunks)
         {
             chunk.IsFormTemplate = true;

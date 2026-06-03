@@ -34,7 +34,7 @@ public class ImageCaptioningService(IVisionProvider visionProvider, ILogger<Imag
         {
             var classification = await visionProvider.DescribeImageAsync(
                 imageBytes,
-                "Is this image meaningful policy content such as an org chart, process diagram, form layout, table, tools, workplace safety equipment, facility equipment or instructional graphic? Or is it decorative such as a logo, banner, background, divider, or icon? Reply with ONLY one word: CONTENT or DECORATIVE.",
+                "Is this image meaningful policy content such as an organization chart, process diagram, form layout, table, tools, workplace safety equipment, facility equipment, instructional graphic or floor plan? Or is it decorative such as a logo, banner, background, divider, or icon? Reply with ONLY one word: CONTENT or DECORATIVE.",
                 maxTokens: 5,
                 mimeType,
                 ct);

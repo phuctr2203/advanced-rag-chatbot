@@ -14,10 +14,10 @@ public class FormTemplateDetectorService(ILlmProvider llmProvider, ILogger<FormT
 
         var prompt = $"""
             You classify company documents.
-            Decide whether this DOCX file is a blank form template that employees fill in, or a policy/procedure document.
+            Decide whether this Office document or spreadsheet is a blank form template that employees fill in, or a policy/procedure document.
 
             Consider BOTH the filename and content.
-            FORM examples: request form, application form, declaration, registration form, reimbursement form, checklist/template with blanks or fields to fill.
+            FORM examples: request form, application form, declaration, registration form, reimbursement form, Excel request sheet, checklist/template with blanks or fields to fill.
             POLICY examples: rules, regulations, procedures, guidelines, announcements, decisions, handbooks.
 
             Reply with ONLY one word: FORM or POLICY.
@@ -67,7 +67,10 @@ public class FormTemplateDetectorService(ILlmProvider llmProvider, ILogger<FormT
             || value.Contains("request", StringComparison.Ordinal)
             || value.Contains("application", StringComparison.Ordinal)
             || value.Contains("declaration", StringComparison.Ordinal)
-            || value.Contains("registration", StringComparison.Ordinal);
+            || value.Contains("registration", StringComparison.Ordinal)
+            || value.Contains("checklist", StringComparison.Ordinal)
+            || value.Contains("claim", StringComparison.Ordinal)
+            || value.Contains("reimbursement", StringComparison.Ordinal);
     }
 
     private static bool LooksLikeTemplateContent(string excerpt)
@@ -79,7 +82,10 @@ public class FormTemplateDetectorService(ILlmProvider llmProvider, ILogger<FormT
             || value.Contains("date:", StringComparison.Ordinal)
             || value.Contains("approved by", StringComparison.Ordinal)
             || value.Contains("requested by", StringComparison.Ordinal)
-            || value.Contains("please fill", StringComparison.Ordinal);
+            || value.Contains("please fill", StringComparison.Ordinal)
+            || value.Contains("department", StringComparison.Ordinal)
+            || value.Contains("amount", StringComparison.Ordinal)
+            || value.Contains("purpose", StringComparison.Ordinal);
     }
 
     private static string FirstWords(string text, int maxWords)
