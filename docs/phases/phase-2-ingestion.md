@@ -371,6 +371,31 @@ Purpose: make uploaded form templates downloadable later from the UI and availab
 
 ---
 
+### Enhancement 2.E7 — RecursiveBoundary chunking strategy
+
+Add optional `RecursiveBoundary` chunking for difficult OCR or poorly structured documents.
+
+Order:
+
+1. Heading/paragraph boundaries
+2. Sentence boundaries
+3. Word windows
+4. Character fallback only for pathological long tokens or unbroken text
+
+Rules:
+- Keep `ParagraphBoundary` as the default unless evaluation proves otherwise
+- Preserve `image_caption` chunks as-is
+- Preserve all `ParsedChunk` metadata
+- Use character splitting only as a last resort, not as the primary policy-document strategy
+
+Test endpoint:
+
+```text
+POST /api/ingest/chunk/recursive-boundary
+```
+
+---
+
 ## Tasks 2.8–2.10 — Text chunking strategies
 
 Implement `TextChunkerService` with selectable strategy via `Ingestion:ChunkingStrategy` config.

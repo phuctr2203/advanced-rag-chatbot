@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PolicyBot.Api.Models;
+using PolicyBot.Api.Services.Ingestion.Chunking;
 using PolicyBot.Api.Services.Ingestion.Classification;
 using PolicyBot.Api.Services.Ingestion.Parsers;
 using PolicyBot.Api.Services.Ingestion.Storage;
@@ -15,6 +16,7 @@ public class IngestController(
     FileConversionService fileConversionService,
     UploadedDocumentStorageService documentStorageService,
     FormTemplateDetectorService formTemplateDetectorService,
+    TextChunkerService textChunkerService,
     TemplateStorageService templateStorageService) : ControllerBase
 {
     [HttpPost]
@@ -90,6 +92,36 @@ public class IngestController(
         var chunks = await xlsxParserService.ParseAsync(document.PhysicalPath, document.OriginalFileName, ct: ct);
         var template = await StoreTemplateIfDetectedAsync(document.PhysicalPath, document.OriginalFileName, chunks, ct);
         return Ok(ToParseResponse(document, chunks, template));
+    }
+
+    [HttpPost("chunk")]
+    public ActionResult<IReadOnlyList<ParsedChunk>> Chunk(IReadOnlyList<ParsedChunk> chunks)
+    {
+        return Ok(textChunkerService.Chunk(chunks));
+    }
+
+    [HttpPost("chunk/fixed-size")]
+    public ActionResult<IReadOnlyList<ParsedChunk>> ChunkFixedSize(IReadOnlyList<ParsedChunk> chunks)
+    {
+        return Ok(textChunkerService.ChunkFixedSize(chunks));
+    }
+
+    [HttpPost("chunk/paragraph-boundary")]
+    public ActionResult<IReadOnlyList<ParsedChunk>> ChunkParagraphBoundary(IReadOnlyList<ParsedChunk> chunks)
+    {
+        return Ok(textChunkerService.ChunkParagraphBoundary(chunks));
+    }
+
+    [HttpPost("chunk/sentence-window")]
+    public ActionResult<IReadOnlyList<ParsedChunk>> ChunkSentenceWindow(IReadOnlyList<ParsedChunk> chunks)
+    {
+        return Ok(textChunkerService.ChunkSentenceWindow(chunks));
+    }
+
+    [HttpPost("chunk/recursive-boundary")]
+    public ActionResult<IReadOnlyList<ParsedChunk>> ChunkRecursiveBoundary(IReadOnlyList<ParsedChunk> chunks)
+    {
+        return Ok(textChunkerService.ChunkRecursiveBoundary(chunks));
     }
 
     private async Task<StoredTemplate?> StoreTemplateIfDetectedAsync(
