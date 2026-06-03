@@ -17,6 +17,7 @@ public class LlmEndpointOptions
 public class VisionProviderOptions
 {
     public string Active { get; set; } = "Ollama";
+    public LlmEndpointOptions OpenWebUI { get; set; } = new();
     public LlmEndpointOptions Ollama { get; set; } = new();
 }
 

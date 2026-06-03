@@ -26,7 +26,7 @@ public class VerificationController(
         using var memory = new MemoryStream();
         await stream.CopyToAsync(memory, ct);
 
-        var description = await visionProvider.DescribeImageAsync(memory.ToArray(), "Phase 1 verification image.", ct);
+        var description = await visionProvider.DescribeImageAsync(memory.ToArray(), "Phase 1 verification image.", ct: ct);
         return Ok(new { description, passed = !string.IsNullOrWhiteSpace(description) });
     }
 

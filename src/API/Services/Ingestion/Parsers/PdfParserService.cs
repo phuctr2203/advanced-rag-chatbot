@@ -8,8 +8,7 @@ namespace PolicyBot.Api.Services.Ingestion.Parsers;
 
 public class PdfParserService(
     IOptions<IngestionOptions> options,
-    ImageCaptioningService imageCaptioningService,
-    ILogger<PdfParserService> logger)
+    ImageCaptioningService imageCaptioningService)
 {
     private readonly IngestionOptions _options = options.Value;
 

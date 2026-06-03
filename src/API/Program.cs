@@ -26,6 +26,7 @@ builder.Services.AddScoped<DocxParserService>();
 builder.Services.AddScoped<XlsxParserService>();
 builder.Services.AddScoped<FileConversionService>();
 builder.Services.AddSingleton<VectorStoreService>();
+builder.Services.AddSingleton<IVectorStoreService>(serviceProvider => serviceProvider.GetRequiredService<VectorStoreService>());
 
 var app = builder.Build();
 

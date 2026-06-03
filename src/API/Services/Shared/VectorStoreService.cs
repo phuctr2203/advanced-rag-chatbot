@@ -43,7 +43,7 @@ public class VectorStoreService(IOptions<QdrantOptions> options) : IVectorStoreS
 
         var points = chunks.Select((chunk, index) => new PointStruct
         {
-            Id = (ulong)HashCode.Combine(chunk.SourceFile, chunk.Page, chunk.ChunkIndex),
+            Id = (ulong)HashCode.Combine(chunk.SourceFile, chunk.PageNumber, chunk.ChunkIndex),
             Vectors = vectors[index],
             Payload = { ToPayload(chunk) }
         }).ToList();
@@ -98,7 +98,7 @@ public class VectorStoreService(IOptions<QdrantOptions> options) : IVectorStoreS
         {
             Text = "Annual leave policy verification chunk.",
             SourceFile = "phase1_verification.txt",
-            Page = 1,
+            PageNumber = 1,
             ChunkIndex = 0,
             ChunkType = "text",
             FileType = "txt",
@@ -110,7 +110,7 @@ public class VectorStoreService(IOptions<QdrantOptions> options) : IVectorStoreS
         var results = await SearchAsync(vector, chunk.Agent, 1, ct);
         return results.Any(result =>
             result.Chunk.SourceFile == chunk.SourceFile &&
-            result.Chunk.Page == chunk.Page &&
+            result.Chunk.PageNumber == chunk.PageNumber &&
             result.Chunk.ChunkIndex == chunk.ChunkIndex);
     }
 
@@ -120,7 +120,7 @@ public class VectorStoreService(IOptions<QdrantOptions> options) : IVectorStoreS
         {
             ["text"] = chunk.Text,
             ["source_file"] = chunk.SourceFile,
-            ["page"] = chunk.Page,
+            ["page"] = chunk.PageNumber,
             ["chunk_index"] = chunk.ChunkIndex,
             ["chunk_type"] = chunk.ChunkType,
             ["file_type"] = chunk.FileType,
@@ -135,7 +135,7 @@ public class VectorStoreService(IOptions<QdrantOptions> options) : IVectorStoreS
         {
             Text = GetString(payload, "text"),
             SourceFile = GetString(payload, "source_file"),
-            Page = (int)GetInteger(payload, "page"),
+            PageNumber = (int)GetInteger(payload, "page"),
             ChunkIndex = (int)GetInteger(payload, "chunk_index"),
             ChunkType = GetString(payload, "chunk_type"),
             FileType = GetString(payload, "file_type"),
