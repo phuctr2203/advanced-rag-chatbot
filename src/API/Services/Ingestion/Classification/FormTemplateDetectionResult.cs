@@ -1,4 +1,4 @@
-namespace PolicyBot.Api.Services.Ingestion;
+namespace PolicyBot.Api.Services.Ingestion.Classification;
 
 public class FormTemplateDetectionResult
 {

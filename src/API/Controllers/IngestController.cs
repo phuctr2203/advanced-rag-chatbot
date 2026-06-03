@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using PolicyBot.Api.Models;
-using PolicyBot.Api.Services.Ingestion;
+using PolicyBot.Api.Services.Ingestion.Classification;
 using PolicyBot.Api.Services.Ingestion.Parsers;
+using PolicyBot.Api.Services.Ingestion.Storage;
 
 namespace PolicyBot.Api.Controllers;
 

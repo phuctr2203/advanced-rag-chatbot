@@ -1,20 +1,22 @@
 using System.Security.Cryptography;
 
-namespace PolicyBot.Api.Services.Ingestion;
+namespace PolicyBot.Api.Services.Ingestion.Storage;
 
-public class TemplateStorageService(ConfiguredPathResolver pathResolver)
+public class UploadedDocumentStorageService(ConfiguredPathResolver pathResolver)
 {
-    public async Task<StoredTemplate> SaveAsync(string sourcePath, string originalFileName, CancellationToken ct)
+    public async Task<StoredDocument> SaveAsync(IFormFile file, CancellationToken ct)
     {
-        var templateRoot = pathResolver.TemplatesStorePath;
-        Directory.CreateDirectory(templateRoot);
+        var uploadRoot = pathResolver.UploadedDocumentsPath;
+        var dateSegment = DateTime.UtcNow.ToString("yyyyMMdd");
+        var targetDirectory = Path.Combine(uploadRoot, dateSegment);
+        Directory.CreateDirectory(targetDirectory);
 
-        var safeFileName = SanitizeFileName(Path.GetFileName(originalFileName));
-        await using var inputStream = File.OpenRead(sourcePath);
+        var safeFileName = SanitizeFileName(Path.GetFileName(file.FileName));
+        await using var inputStream = file.OpenReadStream();
         var hashBytes = await SHA256.HashDataAsync(inputStream, ct);
         var sha256 = Convert.ToHexString(hashBytes).ToLowerInvariant();
         var storedFileName = $"{sha256[..16]}_{safeFileName}";
-        var physicalPath = Path.Combine(templateRoot, storedFileName);
+        var physicalPath = Path.Combine(targetDirectory, storedFileName);
         var alreadyExisted = File.Exists(physicalPath);
 
         if (!alreadyExisted)
@@ -24,12 +26,12 @@ public class TemplateStorageService(ConfiguredPathResolver pathResolver)
             await inputStream.CopyToAsync(outputStream, ct);
         }
 
-        return new StoredTemplate
+        return new StoredDocument
         {
             OriginalFileName = safeFileName,
             StoredFileName = storedFileName,
             PhysicalPath = physicalPath,
-            UrlPath = $"/templates/{storedFileName}",
+            UrlPath = $"/documents/{dateSegment}/{storedFileName}",
             Sha256 = sha256,
             AlreadyExisted = alreadyExisted
         };
@@ -40,6 +42,6 @@ public class TemplateStorageService(ConfiguredPathResolver pathResolver)
         var invalidChars = Path.GetInvalidFileNameChars();
         var chars = value.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray();
         var fileName = new string(chars).Trim();
-        return string.IsNullOrWhiteSpace(fileName) ? "template.docx" : fileName;
+        return string.IsNullOrWhiteSpace(fileName) ? "document" : fileName;
     }
 }

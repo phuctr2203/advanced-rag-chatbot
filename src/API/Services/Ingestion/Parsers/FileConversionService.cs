@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using PolicyBot.Api.Options;
-using PolicyBot.Api.Services.Ingestion;
+using PolicyBot.Api.Services.Ingestion.Storage;
 
 namespace PolicyBot.Api.Services.Ingestion.Parsers;
 

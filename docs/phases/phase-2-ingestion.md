@@ -230,6 +230,147 @@ Verification: internal purchasing form produces readable policy context sentence
 
 ---
 
+## Enhancement Phase 2 — parser/storage hardening
+
+These enhancements were added while validating tasks 2.1–2.7. They support the parser endpoints before the full ingestion orchestrator is implemented.
+
+### Enhancement 2.E1 — Persistent uploaded document storage
+
+Store original uploaded documents under:
+
+```text
+data/uploads/{yyyyMMdd}/{first16Sha256}_{originalFileName}
+```
+
+Rules:
+- Compute SHA-256 from file content before saving
+- Reuse the existing file if the same content and filename are uploaded on the same day
+- Return document metadata from parser endpoints: `originalFileName`, `storedFileName`, `url`, `sha256`, `reused`
+- Serve stored originals from `/documents`
+
+Purpose: keep original files available for future UI display, download, and citations.
+
+---
+
+### Enhancement 2.E2 — Centralized data path resolution
+
+Resolve configured ingestion paths from the API content root instead of the build output folder.
+
+Storage layout:
+
+```text
+data/uploads/     original uploaded documents
+data/temp/        LibreOffice and OCR intermediate files
+data/images/      extracted meaningful PDF/DOCX images
+data/templates/   downloadable DOCX form templates
+```
+
+Rules:
+- `UploadedDocumentsPath`, `TempPath`, `ImageStorePath`, and `TemplatesStorePath` must resolve consistently
+- `/documents`, `/images`, and `/templates` static routes must point to the same resolved folders used by parser/storage services
+
+---
+
+### Enhancement 2.E3 — PDF OCR fallback
+
+Keep PdfPig as the default PDF parser. Before parsing, check extracted text quality:
+
+- Total extracted characters
+- Average words per page
+
+If text quality is below configured thresholds, run OCRmyPDF:
+
+```bash
+ocrmypdf --skip-text input.pdf output.pdf
+```
+
+Then parse the OCR output PDF with PdfPig.
+
+Config:
+
+```json
+{
+  "Ingestion": {
+    "EnablePdfOcrFallback": true,
+    "PdfOcrMinimumTextCharacters": 100,
+    "PdfOcrMinimumAverageWordsPerPage": 10,
+    "OcrMyPdfExecutable": "ocrmypdf"
+  }
+}
+```
+
+Rules:
+- If OCRmyPDF is missing or fails, log a warning and continue with the original PDF
+- Support full executable path in `OcrMyPdfExecutable`
+- Do not crash ingestion when OCR is unavailable
+
+---
+
+### Enhancement 2.E4 — Skip full-page scanned PDF images
+
+OCRmyPDF keeps the original scanned page image and adds a text layer. PdfPig can then see both OCR text and a full-page image.
+
+Skip PDF images before captioning when they cover nearly the whole page:
+
+- Image covers at least 85% of page width
+- Image covers at least 85% of page height
+- Image aspect ratio is close to the page aspect ratio
+
+Purpose: avoid duplicate `image_caption` chunks that describe the whole scanned page when OCR text is already available.
+
+---
+
+### Enhancement 2.E5 — Broader policy-content image classification
+
+Update the vision classification prompt so workplace safety and facility equipment images count as `CONTENT`, not decorative.
+
+Examples that should classify as `CONTENT`:
+- Tools
+- Workplace safety equipment
+- Facility equipment
+- Fire alarm box
+- Smoke or heat detector
+- Automatic sprinkler head
+- Fire hose cabinet
+- Portable fire extinguisher
+
+The classifier still replies with only `CONTENT` or `DECORATIVE`.
+
+---
+
+### Enhancement 2.E6 — DOC/DOCX form template storage
+
+After DOCX parsing, classify whether the document is a blank form template or a policy/procedure document.
+
+Inputs:
+- Original filename
+- First extracted document text
+
+LLM prompt response:
+
+```text
+FORM
+```
+
+or
+
+```text
+POLICY
+```
+
+Rules:
+- For `.docx`, classify the stored original DOCX
+- For `.doc`, convert to DOCX first, then classify the converted DOCX
+- If classified as `FORM`, copy the DOCX into `data/templates`
+- Store template files using SHA-256 naming: `data/templates/{first16Sha256}_{originalFileName}`
+- Return template metadata from DOC/DOCX parser endpoints
+- Tag returned chunks with `IsFormTemplate = true` and `TemplatePath = "/templates/..."`
+- Serve templates from `/templates`
+
+Purpose: make uploaded form templates downloadable later from the UI and available for registry linking.
+
+---
+
 ## Tasks 2.8–2.10 — Text chunking strategies
 
 Implement `TextChunkerService` with selectable strategy via `Ingestion:ChunkingStrategy` config.

@@ -1,6 +1,6 @@
-namespace PolicyBot.Api.Services.Ingestion;
+namespace PolicyBot.Api.Services.Ingestion.Storage;
 
-public class StoredDocument
+public class StoredTemplate
 {
     public string OriginalFileName { get; set; } = string.Empty;
     public string StoredFileName { get; set; } = string.Empty;

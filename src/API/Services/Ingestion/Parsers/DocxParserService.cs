@@ -1,15 +1,12 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using Microsoft.Extensions.Options;
 using PolicyBot.Api.Models;
-using PolicyBot.Api.Options;
-using PolicyBot.Api.Services.Ingestion;
+using PolicyBot.Api.Services.Ingestion.Images;
 
 namespace PolicyBot.Api.Services.Ingestion.Parsers;
 
-public class DocxParserService(ImageCaptioningService imageCaptioningService, IOptions<IngestionOptions> options, ConfiguredPathResolver pathResolver)
+public class DocxParserService(ImageCaptioningService imageCaptioningService, ImageStorageService imageStorageService)
 {
-    private readonly IngestionOptions _options = options.Value;
     public async Task<IReadOnlyList<ParsedChunk>> ParseAsync(string filePath, string? sourceFile = null, string agent = "ELCA_GENERAL", CancellationToken ct = default)
     {
         var chunks = new List<ParsedChunk>();
@@ -85,7 +82,7 @@ public class DocxParserService(ImageCaptioningService imageCaptioningService, IO
                 continue;
             }
 
-            var imagePath = await SaveImageAsync(docName, imageIndex++, extension, imageBytes, ct);
+            var imagePath = await imageStorageService.SaveDocxImageAsync(docName, imageIndex++, extension, imageBytes, ct);
             chunks.Add(new ParsedChunk
             {
                 Text = result.Caption,
@@ -186,24 +183,4 @@ public class DocxParserService(ImageCaptioningService imageCaptioningService, IO
         return (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
     }
 
-    private async Task<string> SaveImageAsync(string docName, int imageIndex, string extension, byte[] imageBytes, CancellationToken ct)
-    {
-        var imageRoot = pathResolver.ImageStorePath;
-        var sanitizedDocName = SanitizePathSegment(docName);
-        var docDirectory = Path.Combine(imageRoot, sanitizedDocName);
-        Directory.CreateDirectory(docDirectory);
-
-        var fileName = $"doc_img{imageIndex}{extension}";
-        var physicalPath = Path.Combine(docDirectory, fileName);
-        await File.WriteAllBytesAsync(physicalPath, imageBytes, ct);
-
-        return $"/images/{sanitizedDocName}/{fileName}";
-    }
-
-    private static string SanitizePathSegment(string value)
-    {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var chars = value.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray();
-        return new string(chars);
-    }
 }

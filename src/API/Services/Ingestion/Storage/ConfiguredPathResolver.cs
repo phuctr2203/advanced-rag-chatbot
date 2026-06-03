@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using PolicyBot.Api.Options;
 
-namespace PolicyBot.Api.Services.Ingestion;
+namespace PolicyBot.Api.Services.Ingestion.Storage;
 
 public class ConfiguredPathResolver(IOptions<IngestionOptions> options, IWebHostEnvironment environment)
 {

@@ -1,6 +1,6 @@
 using PolicyBot.Api.Providers;
 
-namespace PolicyBot.Api.Services.Ingestion;
+namespace PolicyBot.Api.Services.Ingestion.Images;
 
 public class ImageCaptionResult
 {
