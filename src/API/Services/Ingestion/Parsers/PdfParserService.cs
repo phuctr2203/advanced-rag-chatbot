@@ -28,6 +28,7 @@ public class PdfParserService(
                 var width = (int)Math.Round(image.Bounds.Width);
                 var height = (int)Math.Round(image.Bounds.Height);
                 var ratio = height == 0 ? 0 : (float)width / height;
+                var isFullPageImage = IsFullPageImage(width, height, page.Width, page.Height);
                 results.Add(new
                 {
                     page = page.Number,
@@ -39,7 +40,8 @@ public class PdfParserService(
                     mimeType,
                     byteCount = imageBytes.Length,
                     passesSizeFilter = width >= 100 && height >= 100,
-                    passesAspectRatioFilter = ratio <= 5.0f && ratio >= 0.2f
+                    passesAspectRatioFilter = ratio <= 5.0f && ratio >= 0.2f,
+                    isFullPageImage
                 });
             }
         }
@@ -87,6 +89,12 @@ public class PdfParserService(
 
                 var width = (int)Math.Round(image.Bounds.Width);
                 var height = (int)Math.Round(image.Bounds.Height);
+                if (IsFullPageImage(width, height, page.Width, page.Height))
+                {
+                    logger.LogDebug("Skipping full-page PDF image on {SourceFile} page {PageNumber}.", fileName, page.Number);
+                    continue;
+                }
+
                 var result = await imageCaptioningService.ProcessImageAsync(imageBytes, width, height, fileName, page.Number, pageText, mimeType, ct);
                 if (result is null)
                 {
@@ -131,9 +139,18 @@ public class PdfParserService(
             quality.CharacterCount,
             quality.AverageWordsPerPage);
 
+        var ocrExecutable = ResolveExecutable(_options.OcrMyPdfExecutable);
+        if (ocrExecutable is null)
+        {
+            logger.LogWarning(
+                "OCRmyPDF fallback is enabled, but executable '{Executable}' was not found on PATH. Falling back to original PDF.",
+                _options.OcrMyPdfExecutable);
+            return filePath;
+        }
+
         try
         {
-            return await RunOcrMyPdfAsync(filePath, ct);
+            return await RunOcrMyPdfAsync(filePath, ocrExecutable, ct);
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or System.ComponentModel.Win32Exception)
         {
@@ -160,7 +177,7 @@ public class PdfParserService(
         return new PdfTextQuality(pageCount, wordCount, characterCount);
     }
 
-    private async Task<string> RunOcrMyPdfAsync(string filePath, CancellationToken ct)
+    private async Task<string> RunOcrMyPdfAsync(string filePath, string ocrExecutable, CancellationToken ct)
     {
         var tempRoot = pathResolver.TempPath;
         Directory.CreateDirectory(tempRoot);
@@ -174,7 +191,7 @@ public class PdfParserService(
 
         var startInfo = new ProcessStartInfo
         {
-            FileName = _options.OcrMyPdfExecutable,
+            FileName = ocrExecutable,
             RedirectStandardError = true,
             RedirectStandardOutput = true,
             UseShellExecute = false
@@ -201,6 +218,48 @@ public class PdfParserService(
         }
 
         return outputPath;
+    }
+
+    private static string? ResolveExecutable(string executable)
+    {
+        if (string.IsNullOrWhiteSpace(executable))
+        {
+            return null;
+        }
+
+        if (Path.IsPathRooted(executable) || executable.Contains(Path.DirectorySeparatorChar) || executable.Contains(Path.AltDirectorySeparatorChar))
+        {
+            return File.Exists(executable) ? executable : null;
+        }
+
+        var pathEntries = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        var extensions = OperatingSystem.IsWindows()
+            ? (Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD")
+                .Split(';', StringSplitOptions.RemoveEmptyEntries)
+            : [string.Empty];
+
+        foreach (var pathEntry in pathEntries)
+        {
+            var candidate = Path.Combine(pathEntry, executable);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            foreach (var extension in extensions)
+            {
+                var candidateWithExtension = candidate.EndsWith(extension, StringComparison.OrdinalIgnoreCase)
+                    ? candidate
+                    : candidate + extension;
+                if (File.Exists(candidateWithExtension))
+                {
+                    return candidateWithExtension;
+                }
+            }
+        }
+
+        return null;
     }
 
     private async Task<string> SaveImageAsync(string docName, int pageNumber, int imageIndex, string extension, byte[] imageBytes, CancellationToken ct)
@@ -243,6 +302,24 @@ public class PdfParserService(
     private static bool IsJpeg(IReadOnlyList<byte> bytes)
     {
         return bytes.Count >= 4 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[^2] == 0xFF && bytes[^1] == 0xD9;
+    }
+
+    private static bool IsFullPageImage(int imageWidth, int imageHeight, double pageWidth, double pageHeight)
+    {
+        if (pageWidth <= 0 || pageHeight <= 0)
+        {
+            return false;
+        }
+
+        var widthCoverage = imageWidth / pageWidth;
+        var heightCoverage = imageHeight / pageHeight;
+        var imageRatio = imageHeight == 0 ? 0 : imageWidth / (double)imageHeight;
+        var pageRatio = pageWidth / pageHeight;
+        var ratioDelta = Math.Abs(imageRatio - pageRatio);
+
+        return widthCoverage >= 0.85
+            && heightCoverage >= 0.85
+            && ratioDelta <= 0.15;
     }
 
     private static string SanitizePathSegment(string value)
