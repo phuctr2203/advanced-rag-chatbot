@@ -2,13 +2,16 @@ using Microsoft.Extensions.Options;
 using PolicyBot.Api.Models;
 using PolicyBot.Api.Options;
 using PolicyBot.Api.Services.Ingestion;
+using System.Diagnostics;
 using UglyToad.PdfPig;
 
 namespace PolicyBot.Api.Services.Ingestion.Parsers;
 
 public class PdfParserService(
     IOptions<IngestionOptions> options,
-    ImageCaptioningService imageCaptioningService)
+    ImageCaptioningService imageCaptioningService,
+    ConfiguredPathResolver pathResolver,
+    ILogger<PdfParserService> logger)
 {
     private readonly IngestionOptions _options = options.Value;
 
@@ -46,12 +49,13 @@ public class PdfParserService(
 
     public async Task<IReadOnlyList<ParsedChunk>> ParseAsync(string filePath, string? sourceFile = null, string agent = "ELCA_GENERAL", CancellationToken ct = default)
     {
+        var parseFilePath = await ResolveTextReadablePdfAsync(filePath, ct);
         var chunks = new List<ParsedChunk>();
         var fileName = sourceFile ?? Path.GetFileName(filePath);
         var docName = Path.GetFileNameWithoutExtension(fileName);
         var chunkIndex = 0;
 
-        using var document = PdfDocument.Open(filePath);
+        using var document = PdfDocument.Open(parseFilePath);
         foreach (var page in document.GetPages())
         {
             ct.ThrowIfCancellationRequested();
@@ -108,9 +112,100 @@ public class PdfParserService(
         return chunks;
     }
 
+    private async Task<string> ResolveTextReadablePdfAsync(string filePath, CancellationToken ct)
+    {
+        if (!_options.EnablePdfOcrFallback)
+        {
+            return filePath;
+        }
+
+        var quality = AnalyzeTextQuality(filePath);
+        if (!quality.NeedsOcr(_options))
+        {
+            return filePath;
+        }
+
+        logger.LogInformation(
+            "PDF text quality is low for {FilePath}. Characters: {CharacterCount}; average words/page: {AverageWordsPerPage}. Running OCRmyPDF.",
+            filePath,
+            quality.CharacterCount,
+            quality.AverageWordsPerPage);
+
+        try
+        {
+            return await RunOcrMyPdfAsync(filePath, ct);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or System.ComponentModel.Win32Exception)
+        {
+            logger.LogWarning(ex, "OCRmyPDF failed for {FilePath}. Falling back to original PDF.", filePath);
+            return filePath;
+        }
+    }
+
+    private static PdfTextQuality AnalyzeTextQuality(string filePath)
+    {
+        using var document = PdfDocument.Open(filePath);
+        var pageCount = 0;
+        var wordCount = 0;
+        var characterCount = 0;
+
+        foreach (var page in document.GetPages())
+        {
+            pageCount++;
+            var words = page.GetWords().Select(word => word.Text).Where(text => !string.IsNullOrWhiteSpace(text)).ToList();
+            wordCount += words.Count;
+            characterCount += words.Sum(word => word.Length);
+        }
+
+        return new PdfTextQuality(pageCount, wordCount, characterCount);
+    }
+
+    private async Task<string> RunOcrMyPdfAsync(string filePath, CancellationToken ct)
+    {
+        var tempRoot = pathResolver.TempPath;
+        Directory.CreateDirectory(tempRoot);
+
+        var outputDirectory = Path.Combine(tempRoot, "ocr");
+        Directory.CreateDirectory(outputDirectory);
+
+        var outputPath = Path.Combine(
+            outputDirectory,
+            $"{Path.GetFileNameWithoutExtension(filePath)}_ocr_{Guid.NewGuid():N}.pdf");
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = _options.OcrMyPdfExecutable,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false
+        };
+
+        startInfo.ArgumentList.Add("--skip-text");
+        startInfo.ArgumentList.Add(filePath);
+        startInfo.ArgumentList.Add(outputPath);
+
+        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start OCRmyPDF.");
+        var stdout = await process.StandardOutput.ReadToEndAsync(ct);
+        var stderr = await process.StandardError.ReadToEndAsync(ct);
+        await process.WaitForExitAsync(ct);
+
+        if (process.ExitCode != 0)
+        {
+            logger.LogError("OCRmyPDF failed. stdout: {Stdout}; stderr: {Stderr}", stdout, stderr);
+            throw new InvalidOperationException($"OCRmyPDF failed with exit code {process.ExitCode}.");
+        }
+
+        if (!File.Exists(outputPath))
+        {
+            throw new FileNotFoundException("OCRmyPDF did not produce an output PDF.", outputPath);
+        }
+
+        return outputPath;
+    }
+
     private async Task<string> SaveImageAsync(string docName, int pageNumber, int imageIndex, string extension, byte[] imageBytes, CancellationToken ct)
     {
-        var imageRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _options.ImageStorePath));
+        var imageRoot = pathResolver.ImageStorePath;
         var sanitizedDocName = SanitizePathSegment(docName);
         var docDirectory = Path.Combine(imageRoot, sanitizedDocName);
         Directory.CreateDirectory(docDirectory);
@@ -155,5 +250,16 @@ public class PdfParserService(
         var invalidChars = Path.GetInvalidFileNameChars();
         var chars = value.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray();
         return new string(chars);
+    }
+
+    private sealed record PdfTextQuality(int PageCount, int WordCount, int CharacterCount)
+    {
+        public int AverageWordsPerPage => PageCount == 0 ? 0 : WordCount / PageCount;
+
+        public bool NeedsOcr(IngestionOptions options)
+        {
+            return CharacterCount < options.PdfOcrMinimumTextCharacters
+                || AverageWordsPerPage < options.PdfOcrMinimumAverageWordsPerPage;
+        }
     }
 }

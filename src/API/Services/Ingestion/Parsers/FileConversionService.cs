@@ -1,10 +1,11 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using PolicyBot.Api.Options;
+using PolicyBot.Api.Services.Ingestion;
 
 namespace PolicyBot.Api.Services.Ingestion.Parsers;
 
-public class FileConversionService(IOptions<IngestionOptions> options, ILogger<FileConversionService> logger)
+public class FileConversionService(IOptions<IngestionOptions> options, ConfiguredPathResolver pathResolver, ILogger<FileConversionService> logger)
 {
     private readonly IngestionOptions _options = options.Value;
 
@@ -20,7 +21,7 @@ public class FileConversionService(IOptions<IngestionOptions> options, ILogger<F
 
     private async Task<string> ConvertAsync(string filePath, string format, CancellationToken ct)
     {
-        var tempRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _options.TempPath));
+        var tempRoot = pathResolver.TempPath;
         Directory.CreateDirectory(tempRoot);
 
         var outputDirectory = Path.Combine(tempRoot, Path.GetFileNameWithoutExtension(filePath) + "_" + format);

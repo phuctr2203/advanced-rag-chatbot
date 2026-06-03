@@ -39,6 +39,7 @@ public class IngestionOptions
 {
     public string ImageStorePath { get; set; } = "../../data/images";
     public string TemplatesStorePath { get; set; } = "../../data/templates";
+    public string UploadedDocumentsPath { get; set; } = "../../data/uploads";
     public string DataPath { get; set; } = "../../data";
     public string TempPath { get; set; } = "../../data/temp";
     public string ChunkingStrategy { get; set; } = "ParagraphBoundary";
@@ -47,4 +48,8 @@ public class IngestionOptions
     public int MinimumChunkWords { get; set; } = 30;
     public bool EnableImageCaptioning { get; set; } = true;
     public int MaxImageCaptionsPerDocument { get; set; }
+    public bool EnablePdfOcrFallback { get; set; } = true;
+    public int PdfOcrMinimumTextCharacters { get; set; } = 100;
+    public int PdfOcrMinimumAverageWordsPerPage { get; set; } = 10;
+    public string OcrMyPdfExecutable { get; set; } = "ocrmypdf";
 }

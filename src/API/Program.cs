@@ -1,3 +1,5 @@
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using PolicyBot.Api.Options;
 using PolicyBot.Api.Providers;
 using PolicyBot.Api.Services.Ingestion;
@@ -20,6 +22,8 @@ builder.Services.AddHttpClient<OllamaVisionProvider>();
 builder.Services.AddHttpClient<OpenWebUIVisionProvider>();
 builder.Services.AddTransient<IVisionProvider, VisionProviderFactory>();
 builder.Services.AddHttpClient<IEmbeddingProvider, EmbeddingService>();
+builder.Services.AddSingleton<ConfiguredPathResolver>();
+builder.Services.AddScoped<UploadedDocumentStorageService>();
 builder.Services.AddScoped<ImageCaptioningService>();
 builder.Services.AddScoped<PdfParserService>();
 builder.Services.AddScoped<DocxParserService>();
@@ -37,6 +41,24 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+var pathResolver = app.Services.GetRequiredService<ConfiguredPathResolver>();
+var uploadedDocumentsPath = pathResolver.UploadedDocumentsPath;
+Directory.CreateDirectory(uploadedDocumentsPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadedDocumentsPath),
+    RequestPath = "/documents"
+});
+
+var imageStorePath = pathResolver.ImageStorePath;
+Directory.CreateDirectory(imageStorePath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imageStorePath),
+    RequestPath = "/images"
+});
+
 app.MapControllers();
 
 app.Run();

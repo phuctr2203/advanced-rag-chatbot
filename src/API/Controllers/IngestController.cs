@@ -1,12 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using PolicyBot.Api.Models;
+using PolicyBot.Api.Services.Ingestion;
 using PolicyBot.Api.Services.Ingestion.Parsers;
 
 namespace PolicyBot.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class IngestController(PdfParserService pdfParserService, DocxParserService docxParserService, XlsxParserService xlsxParserService, FileConversionService fileConversionService) : ControllerBase
+public class IngestController(
+    PdfParserService pdfParserService,
+    DocxParserService docxParserService,
+    XlsxParserService xlsxParserService,
+    FileConversionService fileConversionService,
+    UploadedDocumentStorageService documentStorageService) : ControllerBase
 {
     [HttpPost]
     public IActionResult Ingest(IFormFile file, [FromQuery] string? agent)
@@ -15,28 +21,33 @@ public class IngestController(PdfParserService pdfParserService, DocxParserServi
     }
 
     [HttpPost("parse/pdf")]
-    public async Task<ActionResult<IReadOnlyList<ParsedChunk>>> ParsePdf(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ParsePdf(IFormFile file, CancellationToken ct)
     {
-        var filePath = await SaveTempFileAsync(file, ct);
-        var chunks = await pdfParserService.ParseAsync(filePath, file.FileName, ct: ct);
-        return Ok(chunks);
+        var document = await documentStorageService.SaveAsync(file, ct);
+        var chunks = await pdfParserService.ParseAsync(document.PhysicalPath, document.OriginalFileName, ct: ct);
+        return Ok(ToParseResponse(document, chunks));
     }
 
     [HttpPost("analyze/pdf-images")]
     public async Task<IActionResult> AnalyzePdfImages(IFormFile file, CancellationToken ct)
     {
-        var filePath = await SaveTempFileAsync(file, ct);
-        return Ok(pdfParserService.AnalyzeImages(filePath));
+        var document = await documentStorageService.SaveAsync(file, ct);
+        return Ok(new
+        {
+            document = ToDocumentResponse(document),
+            images = pdfParserService.AnalyzeImages(document.PhysicalPath)
+        });
     }
 
     [HttpPost("convert/pptx")]
     public async Task<IActionResult> ConvertPptx(IFormFile file, CancellationToken ct)
     {
-        var filePath = await SaveTempFileAsync(file, ct);
-        var pdfPath = await fileConversionService.ToPdfAsync(filePath, ct);
-        var chunks = await pdfParserService.ParseAsync(pdfPath, file.FileName, ct: ct);
+        var document = await documentStorageService.SaveAsync(file, ct);
+        var pdfPath = await fileConversionService.ToPdfAsync(document.PhysicalPath, ct);
+        var chunks = await pdfParserService.ParseAsync(pdfPath, document.OriginalFileName, ct: ct);
         return Ok(new
         {
+            document = ToDocumentResponse(document),
             pdfPath,
             pages = chunks.Select(chunk => chunk.PageNumber).Distinct().Count(),
             chunks
@@ -44,43 +55,53 @@ public class IngestController(PdfParserService pdfParserService, DocxParserServi
     }
 
     [HttpPost("parse/docx")]
-    public async Task<ActionResult<IReadOnlyList<ParsedChunk>>> ParseDocx(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ParseDocx(IFormFile file, CancellationToken ct)
     {
-        var filePath = await SaveTempFileAsync(file, ct);
-        var chunks = await docxParserService.ParseAsync(filePath, file.FileName, ct: ct);
-        return Ok(chunks);
+        var document = await documentStorageService.SaveAsync(file, ct);
+        var chunks = await docxParserService.ParseAsync(document.PhysicalPath, document.OriginalFileName, ct: ct);
+        return Ok(ToParseResponse(document, chunks));
     }
 
     [HttpPost("convert/doc")]
     public async Task<IActionResult> ConvertDoc(IFormFile file, CancellationToken ct)
     {
-        var filePath = await SaveTempFileAsync(file, ct);
-        var docxPath = await fileConversionService.ToDocxAsync(filePath, ct);
-        var chunks = await docxParserService.ParseAsync(docxPath, file.FileName, ct: ct);
+        var document = await documentStorageService.SaveAsync(file, ct);
+        var docxPath = await fileConversionService.ToDocxAsync(document.PhysicalPath, ct);
+        var chunks = await docxParserService.ParseAsync(docxPath, document.OriginalFileName, ct: ct);
         return Ok(new
         {
+            document = ToDocumentResponse(document),
             docxPath,
             chunks
         });
     }
 
     [HttpPost("parse/xlsx")]
-    public async Task<ActionResult<IReadOnlyList<ParsedChunk>>> ParseXlsx(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ParseXlsx(IFormFile file, CancellationToken ct)
     {
-        var filePath = await SaveTempFileAsync(file, ct);
-        var chunks = await xlsxParserService.ParseAsync(filePath, file.FileName, ct: ct);
-        return Ok(chunks);
+        var document = await documentStorageService.SaveAsync(file, ct);
+        var chunks = await xlsxParserService.ParseAsync(document.PhysicalPath, document.OriginalFileName, ct: ct);
+        return Ok(ToParseResponse(document, chunks));
     }
 
-    private static async Task<string> SaveTempFileAsync(IFormFile file, CancellationToken ct)
+    private static object ToParseResponse(StoredDocument document, IReadOnlyList<ParsedChunk> chunks)
     {
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "policy-bot-uploads");
-        Directory.CreateDirectory(tempDirectory);
+        return new
+        {
+            document = ToDocumentResponse(document),
+            chunks
+        };
+    }
 
-        var safeFileName = Path.GetFileName(file.FileName);
-        var filePath = Path.Combine(tempDirectory, $"{Guid.NewGuid():N}_{safeFileName}");
-        await using var stream = System.IO.File.Create(filePath);
-        await file.CopyToAsync(stream, ct);
-        return filePath;
+    private static object ToDocumentResponse(StoredDocument document)
+    {
+        return new
+        {
+            originalFileName = document.OriginalFileName,
+            storedFileName = document.StoredFileName,
+            url = document.UrlPath,
+            sha256 = document.Sha256,
+            reused = document.AlreadyExisted
+        };
     }
 }

@@ -7,7 +7,7 @@ using PolicyBot.Api.Services.Ingestion;
 
 namespace PolicyBot.Api.Services.Ingestion.Parsers;
 
-public class DocxParserService(ImageCaptioningService imageCaptioningService, IOptions<IngestionOptions> options)
+public class DocxParserService(ImageCaptioningService imageCaptioningService, IOptions<IngestionOptions> options, ConfiguredPathResolver pathResolver)
 {
     private readonly IngestionOptions _options = options.Value;
     public async Task<IReadOnlyList<ParsedChunk>> ParseAsync(string filePath, string? sourceFile = null, string agent = "ELCA_GENERAL", CancellationToken ct = default)
@@ -188,7 +188,7 @@ public class DocxParserService(ImageCaptioningService imageCaptioningService, IO
 
     private async Task<string> SaveImageAsync(string docName, int imageIndex, string extension, byte[] imageBytes, CancellationToken ct)
     {
-        var imageRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _options.ImageStorePath));
+        var imageRoot = pathResolver.ImageStorePath;
         var sanitizedDocName = SanitizePathSegment(docName);
         var docDirectory = Path.Combine(imageRoot, sanitizedDocName);
         Directory.CreateDirectory(docDirectory);
