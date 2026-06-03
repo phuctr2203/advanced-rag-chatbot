@@ -1,48 +1,17 @@
 using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Options;
-using PolicyBot.Api.Options;
-using PolicyBot.Api.Providers;
-using PolicyBot.Api.Services.Ingestion.Chunking;
-using PolicyBot.Api.Services.Ingestion.Classification;
-using PolicyBot.Api.Services.Ingestion.Images;
-using PolicyBot.Api.Services.Ingestion.Ocr;
-using PolicyBot.Api.Services.Ingestion.Parsers;
+using PolicyBot.Api.DependencyInjection;
 using PolicyBot.Api.Services.Ingestion.Storage;
-using PolicyBot.Api.Services.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.Configure<LlmProviderOptions>(builder.Configuration.GetSection("LlmProvider"));
-builder.Services.Configure<VisionProviderOptions>(builder.Configuration.GetSection("VisionProvider"));
-builder.Services.Configure<EmbeddingOptions>(builder.Configuration.GetSection("Embedding"));
-builder.Services.Configure<QdrantOptions>(builder.Configuration.GetSection("Qdrant"));
-builder.Services.Configure<IngestionOptions>(builder.Configuration.GetSection("Ingestion"));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHttpClient<ILlmProvider, OpenAICompatibleProvider>();
-builder.Services.AddHttpClient<OllamaVisionProvider>();
-builder.Services.AddHttpClient<OpenWebUIVisionProvider>();
-builder.Services.AddTransient<IVisionProvider, VisionProviderFactory>();
-builder.Services.AddHttpClient<IEmbeddingProvider, EmbeddingService>();
-builder.Services.AddSingleton<ConfiguredPathResolver>();
-builder.Services.AddScoped<UploadedDocumentStorageService>();
-builder.Services.AddScoped<TemplateStorageService>();
-builder.Services.AddScoped<FormTemplateDetectorService>();
-builder.Services.AddScoped<DocumentClassifierService>();
-builder.Services.AddScoped<TextChunkerService>();
-builder.Services.AddScoped<ImageCaptioningService>();
-builder.Services.AddScoped<ImageStorageService>();
-builder.Services.AddScoped<PdfTextQualityAnalyzer>();
-builder.Services.AddScoped<PdfOcrService>();
-builder.Services.AddScoped<PdfImageExtractorService>();
-builder.Services.AddScoped<PdfParserService>();
-builder.Services.AddScoped<DocxParserService>();
-builder.Services.AddScoped<XlsxParserService>();
-builder.Services.AddScoped<FileConversionService>();
-builder.Services.AddSingleton<VectorStoreService>();
-builder.Services.AddSingleton<IVectorStoreService>(serviceProvider => serviceProvider.GetRequiredService<VectorStoreService>());
+builder.Services
+    .AddConfiguredOptions(builder.Configuration)
+    .AddProviderServices()
+    .AddIngestionServices()
+    .AddVectorServices();
 
 var app = builder.Build();
 
