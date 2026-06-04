@@ -26,9 +26,6 @@ secrets.json
 .env.*
 !.env.example
 
-# Local agent/tool settings
-.claude/
-
 # Visual Studio / Rider / VS Code
 .vs/
 .idea/

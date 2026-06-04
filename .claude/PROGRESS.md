@@ -1,0 +1,133 @@
+# ELCA Policy Chatbot — Progress
+
+Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after feature is verified end-to-end.
+> Agent: update checkboxes here at the end of every session. 
+> Do not edit phase files.
+
+## Phase 1 — Infrastructure & project setup
+
+- [x] 1.1 Docker environment running (Qdrant + TEI)
+- [x] 1.2 Qdrant collection created
+- [x] 1.3 ASP.NET Core project scaffolded
+- [x] 1.4 DI, config, and folder structure in place
+- [x] 1.5 LLM provider abstraction implemented
+- [x] 1.6 Vision provider abstraction (`IVisionProvider`, `OllamaVisionProvider`)
+- [x] 1.7 Vision provider verified
+- [x] 1.8 EmbeddingService connected to TEI
+- [x] 1.9 VectorStoreService connected to Qdrant
+
+## Phase 2 — Document ingestion pipeline
+ 
+- [x] 2.1 PDF parser — text extraction per page
+- [x] 2.2 `ImageCaptioningService` — multi-layer filter (size, aspect ratio, vision classify, caption)
+- [x] 2.3 PDF parser — image extraction using `ImageCaptioningService`
+- [x] 2.4 PPTX → PDF conversion via LibreOffice
+- [x] 2.5 DOCX parser — text + image extraction using `ImageCaptioningService`
+- [x] 2.6 DOC → DOCX conversion via LibreOffice
+- [x] 2.7 XLSX parser — form field reconstruction as readable prose
+- [x] 2.8 Text chunker — Strategy A: FixedSize
+- [x] 2.9 Text chunker — Strategy B: ParagraphBoundary
+- [x] 2.10 Text chunker — Strategy C: SentenceWindow
+- [ ] 2.11 Chunker evaluation — strategy chosen, reason noted below
+- [x] 2.12 Document classifier — manual agent via API param
+- [x] 2.13 Document classifier — LLM auto-classify fallback
+- [x] 2.14 Ingestion orchestrator wired end-to-end
+- [x] 2.15 `POST /api/ingest` endpoint working
+- [x] 2.16 Static image serving configured (`/images/...`)
+- [x] 2.17 `form-registry.json` schema created and manually completed
+- [x] 2.18 LLM form mention extractor — draft registry generated from PDF ingestion
+- [x] 2.19 DOCX form template detection — `is_form_template` tagged in Qdrant
+- [x] 2.20 Static template serving configured (`/templates/...`)
+
+### Enhancement Phase 2.1 — parser/storage hardening
+
+- [x] 2.E1 Persistent uploaded document storage under `data/uploads/{yyyyMMdd}/{sha256}_{filename}`
+- [x] 2.E2 SHA-256 same-day upload dedupe with `reused` metadata
+- [x] 2.E3 Centralized path resolution for uploads, temp, images, and templates
+- [x] 2.E4 Static serving for `/documents`, `/images`, and `/templates`
+- [x] 2.E5 PDF OCR fallback via OCRmyPDF with text-quality threshold and safe fallback
+- [x] 2.E6 Full-page scanned PDF image skip after OCR to avoid duplicate image captions
+- [x] 2.E7 Broadened image classification prompt for tools, safety, and facility equipment
+- [x] 2.E8 DOC/DOCX form template detection using filename + LLM content classification
+- [x] 2.E9 Template storage under `data/templates` with SHA-256 naming and template URL metadata
+- [x] 2.E10 Parser responses include document/template metadata for future UI linking
+- [x] 2.E11 Optional RecursiveBoundary chunking strategy for difficult OCR or poorly structured text
+
+### Enhancement Phase 2.2 — LLM-assisted form/template mapping suggestions
+
+- [x] 2.2.E1 `data/form-registry-suggestions.json` suggestion file schema
+- [x] 2.2.E2 Candidate matching inputs from uploaded template + draft registry entries
+- [x] 2.2.E3 LLM mapping prompt returns matched form, confidence, reason, and status
+- [x] 2.2.E4 Confidence policy implemented (`recommended`, `needs_manual_review`, unmapped)
+- [x] 2.2.E5 Review API for listing, accepting, rejecting, and choosing suggested mappings
+- [ ] 2.2.E6 UI review flow shows Accept / Reject / Choose another with confidence score
+
+> **Chunker strategy chosen:** Provisional default is `ParagraphBoundary`.
+> 
+> Reason: company policy documents are usually structured by articles, sections, clauses, and paragraphs, so paragraph-aware chunks preserve policy context and citation precision better than fixed word windows. Keep `RecursiveBoundary` available as the fallback for OCR-heavy or poorly structured documents. Final confirmation will be done later with retriever evaluation using context precision, context recall, context relevance, answer completeness, and citation precision.
+ 
+## Phase 3 — RAG query pipeline
+ 
+- [ ] 3.1 Language detection service
+- [ ] 3.2 Intent classifier — fast path
+- [ ] 3.3 Intent classifier — LLM fallback
+- [ ] 3.4 Intent response templates (all 4 languages)
+- [ ] 3.5 Vector search (no agent filter)
+- [ ] 3.6 Prompt builder
+- [ ] 3.7 LLM streaming service
+- [ ] 3.8 Source citation parser — updated `SourceRef` with `FormDownload`
+- [ ] 3.9 `FormRegistryService` — loads `form-registry.json`, lookup by file and alias
+- [ ] 3.10 Form download enrichment in `ChatOrchestrator`
+- [ ] 3.11 `POST /api/chat` SSE endpoint — sources include form download refs
+- [ ] 3.12 End-to-end RAG verified in all 4 languages + form download verified
+
+## Phase 4 — Frontend
+
+- [ ] 4.1 React project scaffolded
+- [ ] 4.2 Chat UI with message history
+- [ ] 4.3 SSE streaming rendering
+- [ ] 4.4 Source citation panel
+- [ ] 4.5 Image display alongside citations
+- [ ] 4.6 Document upload UI with optional agent selector
+- [ ] 4.7 Form mapping suggestion review UI with Accept / Reject / Choose another
+
+## Phase 5 — Polish & demo prep
+
+- [ ] 5.1 Error handling for service and parsing failures
+- [ ] 5.2 Multilingual tested end-to-end
+- [ ] 5.3 Citation accuracy verified with real policy files
+- [ ] 5.4 Demo script prepared
+- [ ] 5.5 README written
+
+## Phase 6 — Agent orchestration & MCP
+
+Start only after Phase 5 is complete.
+
+- [ ] 6.1 Router agent
+- [ ] 6.2 Vector search updated with agent filter
+- [ ] 6.3 Tool-calling loop
+- [ ] 6.4 MCP server configured
+- [ ] 6.5 MCP tools exposed and externally tested
+
+## RAGAS Evaluation
+
+- [ ] EVAL 1 Corpus audit — inspect all 44 files, extract parser output, classify canonical and supporting sources
+- [ ] EVAL 2 Question draft generation — create approximately 100 grounded draft questions
+- [ ] EVAL 3 Dataset validation — review references, sources, pages, language, intent, and duplicates
+- [ ] EVAL 4 Evaluation query endpoint — expose trace metadata behind `Evaluation:Enabled`
+- [ ] EVAL 5 Offline RAGAS runner — run both evaluator profiles with resumable output
+- [ ] EVAL 6 DOCX report generation — export quantitative and deterministic checks
+- [ ] EVAL 7 Baseline and tuning loop — preserve baseline and compare improvements
+
+---
+ 
+## Session notes
+ 
+> Agent appends notes here after each session.
+
+- 2026-06-04: Verified task 2.15 against running API on `http://localhost:5000`: invalid agent returns `400`, unsupported `.md` upload returns `400`, and DOCX ingest with `agent=ELCA_GENERAL` returns `200` with `chunks: 60`, document metadata, and template metadata.
+- 2026-06-04: Implemented task 2.18 form mention extractor and wired it into PDF ingestion before chunking. User verified PDF ingestion generated `data/form-registry-draft.json`.
+- 2026-06-04: Verified task 2.19 by querying Qdrant collection `rag_policy_docs`; DOCX template chunks include `is_form_template: true` and `template_path`.
+- 2026-06-04: Verified task 2.20 against running API on `http://localhost:5000`; `/templates/9ee96f17670f8f0e_Payment%20request%20form.docx` returned `200` with DOCX content type.
+- 2026-06-04: Implemented Enhancement Phase 2.2 backend. Verified template upload generated `data/form-registry-suggestions.json` using draft entries + template metadata; local LLM was unavailable, so filename/template-text heuristic fallback produced a `pending_review` suggestion with confidence `0.89`. Verified review endpoints for list, choose-template, accept, and reject. UI review flow remains unchecked.
+ 

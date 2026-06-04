@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($result = curl.exe -s -X POST \"http://localhost:5055/api/ingest/parse/pdf\" -F \"file=@data/test/Employees Laptop Buy- Back Scheme.pdf\" | ConvertFrom-Json; $group = $result | Group-Object chunkType; [pscustomobject]@{ File = \"Employees Laptop Buy- Back Scheme.pdf\"; TotalChunks = $result.Count; TextChunks = \\(\\($group | Where-Object Name -eq \"text\"\\).Count\\); ImageCaptionChunks = \\(\\($group | Where-Object Name -eq \"image_caption\"\\).Count\\); FirstTextChars = $result[0].text.Substring\\(0, [Math]::Min\\(120, $result[0].text.Length\\)\\) })"
+    ]
+  }
+}
