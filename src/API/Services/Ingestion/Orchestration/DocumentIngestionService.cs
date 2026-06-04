@@ -16,6 +16,7 @@ public class DocumentIngestionService(
     FileConversionService fileConversionService,
     DocumentClassifierService documentClassifierService,
     FormMentionExtractorService formMentionExtractorService,
+    FormRegistrySuggestionService formRegistrySuggestionService,
     FormTemplateDetectorService formTemplateDetectorService,
     TemplateStorageService templateStorageService,
     TextChunkerService textChunkerService,
@@ -54,6 +55,11 @@ public class DocumentIngestionService(
             parseResult.TemplateCandidateFileName,
             parseResult.Chunks,
             ct);
+        FormRegistrySuggestion? formMappingSuggestion = null;
+        if (template is not null)
+        {
+            formMappingSuggestion = await formRegistrySuggestionService.GenerateSuggestionAsync(template, parseResult.Chunks, resolvedAgent, ct);
+        }
 
         var chunks = textChunkerService.Chunk(parseResult.Chunks);
         DocumentClassifierService.ApplyAgent(chunks, resolvedAgent);
@@ -72,7 +78,8 @@ public class DocumentIngestionService(
                 ParsedChunkCount = parseResult.Chunks.Count,
                 ChunkCount = 0,
                 Document = document,
-                Template = template
+                Template = template,
+                FormMappingSuggestion = formMappingSuggestion
             };
         }
 
@@ -92,7 +99,8 @@ public class DocumentIngestionService(
             ParsedChunkCount = parseResult.Chunks.Count,
             ChunkCount = chunks.Count,
             Document = document,
-            Template = template
+            Template = template,
+            FormMappingSuggestion = formMappingSuggestion
         };
     }
 

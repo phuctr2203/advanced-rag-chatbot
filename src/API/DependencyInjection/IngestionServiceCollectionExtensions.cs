@@ -18,6 +18,7 @@ public static class IngestionServiceCollectionExtensions
         services.AddScoped<TemplateStorageService>();
         services.AddScoped<FormTemplateDetectorService>();
         services.AddScoped<FormMentionExtractorService>();
+        services.AddScoped<FormRegistrySuggestionService>();
         services.AddScoped<DocumentClassifierService>();
         services.AddScoped<TextChunkerService>();
         services.AddScoped<ImageCaptioningService>();

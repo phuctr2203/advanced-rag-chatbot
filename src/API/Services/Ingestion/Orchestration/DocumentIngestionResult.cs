@@ -1,4 +1,5 @@
 using PolicyBot.Api.Services.Ingestion.Storage;
+using PolicyBot.Api.Services.Ingestion.Forms;
 
 namespace PolicyBot.Api.Services.Ingestion.Orchestration;
 
@@ -10,4 +11,5 @@ public class DocumentIngestionResult
     public int ChunkCount { get; set; }
     public StoredDocument? Document { get; set; }
     public StoredTemplate? Template { get; set; }
+    public FormRegistrySuggestion? FormMappingSuggestion { get; set; }
 }

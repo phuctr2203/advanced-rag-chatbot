@@ -51,7 +51,8 @@ public class IngestController(
                 agent = result.Agent,
                 chunks = result.ChunkCount,
                 document = ToDocumentResponse(document),
-                template = ToTemplateResponse(result.Template)
+                template = ToTemplateResponse(result.Template),
+                formMappingSuggestion = result.FormMappingSuggestion
             });
         }
         catch (NotSupportedException exception)

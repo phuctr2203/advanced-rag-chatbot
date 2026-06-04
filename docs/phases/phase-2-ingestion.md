@@ -687,6 +687,204 @@ Verification: access `/templates/Payment_request_form.docx` in browser — file 
 
 ---
 
+## Enhancement Phase 2.2 — LLM-assisted form/template mapping suggestions
+
+Purpose: reduce manual work when linking policy-mentioned forms to uploaded template files, while keeping final control with the user.
+
+Current manual flow:
+
+```text
+1. Upload PDF policy
+2. Extract form mentions into data/form-registry-draft.json
+3. Upload DOCX/XLSX form templates
+4. Manually edit data/form-registry.json to link docx_file/download_path
+```
+
+Planned assisted flow:
+
+```text
+1. Upload PDF policy
+2. Extract draft form mentions into data/form-registry-draft.json
+3. Upload DOCX/XLSX form template
+4. Detect uploaded file as FORM
+5. Compare template filename + extracted template text against draft entries
+6. Write suggested matches with confidence scores
+7. UI shows Accept / Reject / Choose another
+8. Only accepted matches update data/form-registry.json
+```
+
+Important rule: do not auto-update `form-registry.json` from the LLM result. The LLM can suggest links, but a user must approve them first.
+
+### Enhancement 2.2.E1 — Form mapping suggestion file
+
+Create a separate suggestion file:
+
+```text
+data/form-registry-suggestions.json
+```
+
+This file is generated automatically and can be overwritten or updated by the app. It is not the final source of truth.
+
+Suggested schema:
+
+```json
+[
+  {
+    "form_name": "Payment Request Form",
+    "aliases": ["payment request", "request for payment"],
+    "id": "d0a8d8ecd2c790ee",
+    "candidate_template_file": "9ee96f17670f8f0e_Payment request form.docx",
+    "candidate_download_path": "/templates/9ee96f17670f8f0e_Payment request form.docx",
+    "agent": "ELCA_GENERAL",
+    "confidence": 0.93,
+    "reason": "Filename and template content both match Payment Request Form.",
+    "status": "pending_review"
+  }
+]
+```
+
+Allowed `status` values:
+
+| Status | Meaning |
+|---|---|
+| `pending_review` | Suggested by the system, waiting for user action |
+| `accepted` | User accepted the mapping |
+| `rejected` | User rejected the mapping |
+| `needs_manual_review` | Confidence was too low to recommend direct acceptance |
+
+---
+
+### Enhancement 2.2.E2 — Candidate matching inputs
+
+When a template file is uploaded and classified as `FORM`, compare it against existing draft registry entries.
+
+Inputs:
+- Template filename
+- Template download path
+- Template extracted text excerpt, first 300-500 words
+- Agent
+- Entries from `data/form-registry-draft.json`
+
+Matching signals:
+- Filename similarity against `form_name` and aliases
+- Template text similarity against `form_name` and aliases
+- Agent match
+- LLM judgment over candidate entries
+
+---
+
+### Enhancement 2.2.E3 — LLM mapping prompt
+
+Use the LLM only to suggest the best candidate, not to write the final registry.
+
+Prompt shape:
+
+```text
+You are linking an uploaded form template to exactly one form mentioned in a company policy.
+
+CRITICAL OUTPUT RULES:
+- Return ONLY one valid JSON object.
+- Do not use markdown fences.
+- Do not add explanations before or after the JSON.
+- Use double quotes for all JSON property names and string values.
+- Use null without quotes when there is no match.
+- confidence must be a number between 0 and 1.
+- status must be either "pending_review" or "needs_manual_review".
+- matched_form_name must exactly match one candidate Form name, or null.
+
+Template filename:
+{templateFileName}
+
+Template excerpt:
+{templateExcerpt}
+
+Candidate form mentions:
+1. Form name: {formName}
+   Aliases: {aliases}
+   Agent: {agent}
+
+If one candidate matches, return exactly this JSON shape:
+{
+  "matched_form_name": "Payment Request Form",
+  "confidence": 0.93,
+  "reason": "Filename and template content both match Payment Request Form.",
+  "status": "pending_review"
+}
+
+If no candidate matches, return exactly this JSON shape:
+{
+  "matched_form_name": null,
+  "confidence": 0.0,
+  "reason": "No strong match found",
+  "status": "needs_manual_review"
+}
+```
+
+Rules:
+- `maxTokens: 300`
+- Strip markdown fences before parsing JSON
+- If parsing fails, log and skip suggestion generation
+- Never crash ingestion if suggestion generation fails
+- If the LLM request fails or returns unusable mapping JSON, fall back to filename/template-text similarity and write a suggestion only when confidence is at least `0.60`
+
+---
+
+### Enhancement 2.2.E4 — Confidence policy
+
+Use confidence to decide what the UI should show.
+
+| Confidence | Behavior |
+|---|---|
+| `>= 0.85` | Show as recommended match with Accept / Reject |
+| `0.60 - 0.84` | Show as possible match, marked `needs_manual_review` |
+| `< 0.60` | Do not recommend direct match; leave unmapped |
+
+Even for `>= 0.85`, the system should not automatically update `form-registry.json`.
+
+---
+
+### Enhancement 2.2.E5 — Review API
+
+Add review endpoints later when the frontend needs them:
+
+```text
+GET  /api/form-registry/suggestions
+POST /api/form-registry/suggestions/{id}/accept
+POST /api/form-registry/suggestions/{id}/reject
+POST /api/form-registry/suggestions/{id}/choose-template
+```
+
+Accept behavior:
+- Copy the accepted suggestion into `data/form-registry.json`
+- Fill `docx_file` / `download_path`
+- Mark the suggestion as `accepted`
+
+Reject behavior:
+- Keep `form-registry.json` unchanged
+- Mark the suggestion as `rejected`
+
+Upload response behavior:
+- When a template upload produces a suggestion, include it in the `POST /api/ingest` response as `formMappingSuggestion`
+
+---
+
+### Enhancement 2.2.E6 — UI expectation
+
+In the future upload/review UI, show suggestions like:
+
+```text
+Payment Request Form
+Suggested template: Payment request form.docx
+Confidence: 93%
+Reason: Filename and content both match the policy mention.
+
+[Accept] [Reject] [Choose another]
+```
+
+The final `form-registry.json` remains manually approved, but the user no longer needs to search and map every template from scratch.
+
+---
+
 ## Done criteria
 
 - Each supported file type ingests without error
