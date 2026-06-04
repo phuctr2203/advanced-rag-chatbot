@@ -86,12 +86,97 @@ Controls:
 - Upload button.
 - Loading state.
 - Success message with agent and chunk count.
+- If upload response includes `formMappingSuggestion`, show a compact suggestion review card.
 - Error message for bad upload.
 
 Endpoint behavior:
 
 - Auto-detect: `POST /api/ingest`
 - Manual: `POST /api/ingest?agent=ELCA_HR`
+
+Upload response may include:
+
+```ts
+type FormMappingSuggestion = {
+  id: string;
+  formName: string;
+  aliases: string[];
+  candidateTemplateFile: string;
+  candidateDownloadPath: string;
+  agent: string;
+  confidence: number;
+  reason: string;
+  status: 'pending_review' | 'needs_manual_review' | 'accepted' | 'rejected';
+};
+```
+
+When present, display:
+
+```text
+{formName}
+Suggested template: {candidateTemplateFile}
+Confidence: {confidencePercent}
+Reason: {reason}
+```
+
+Actions:
+- Accept
+- Reject
+- Choose another
+
+Do not update UI as final-linked until the accept API succeeds.
+
+## Task 4.7 — Form mapping suggestion review UI
+
+Purpose: let the user approve or reject LLM-assisted template mapping suggestions generated during Phase 2 ingestion.
+
+Add a review area in the upload/system side panel:
+
+- Show pending suggestions from `GET /api/form-registry/suggestions`
+- Group by status:
+  - Recommended (`pending_review`)
+  - Needs review (`needs_manual_review`)
+  - Accepted
+  - Rejected
+- Show confidence as a percentage
+- Show the LLM/fallback reason
+- Show candidate template file and download path
+- Provide actions for each pending/needs-review suggestion:
+  - Accept
+  - Reject
+  - Choose another
+
+Endpoint behavior:
+
+```text
+GET  /api/form-registry/suggestions
+POST /api/form-registry/suggestions/{id}/accept
+POST /api/form-registry/suggestions/{id}/reject
+POST /api/form-registry/suggestions/{id}/choose-template
+```
+
+Accept behavior:
+- Call accept endpoint
+- Move card to Accepted state
+- Show that `form-registry.json` has been updated
+
+Reject behavior:
+- Call reject endpoint
+- Move card to Rejected state
+- Do not remove it immediately; keep it visible for traceability
+
+Choose another behavior:
+- Let user enter/select `candidateTemplateFile` and `candidateDownloadPath`
+- Call choose-template endpoint
+- Return card to `pending_review`
+
+UI copy:
+
+```text
+This is a suggested mapping. Review before accepting.
+```
+
+Do not imply the LLM result is final. The final source of truth is still the accepted entry in `form-registry.json`.
 
 ## Layout suggestion
 
@@ -111,3 +196,5 @@ Mobile:
 - Source images render when present.
 - User can upload document with auto-detect and manual agent selection.
 - Upload result shows selected/detected agent and chunk count.
+- User can review form/template mapping suggestions with confidence score.
+- User can accept, reject, or choose another template for a mapping suggestion.
