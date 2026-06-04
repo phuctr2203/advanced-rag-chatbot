@@ -36,11 +36,13 @@ public class FormTemplateDetectorService(ILlmProvider llmProvider, ILogger<FormT
 
             if (normalized.Contains("FORM", StringComparison.Ordinal))
             {
+                logger.LogInformation("[FormDetector] {FileName} detected as: FORM", fileName);
                 return new FormTemplateDetectionResult { IsTemplate = true, Reason = "LLM classified as FORM." };
             }
 
             if (normalized.Contains("POLICY", StringComparison.Ordinal))
             {
+                logger.LogInformation("[FormDetector] {FileName} detected as: POLICY", fileName);
                 return new FormTemplateDetectionResult { IsTemplate = false, Reason = "LLM classified as POLICY." };
             }
 
@@ -52,6 +54,7 @@ public class FormTemplateDetectorService(ILlmProvider llmProvider, ILogger<FormT
         }
 
         var heuristicResult = LooksLikeTemplateName(fileName) || LooksLikeTemplateContent(excerpt);
+        logger.LogInformation("[FormDetector] {FileName} detected as: {Label}", fileName, heuristicResult ? "FORM" : "POLICY");
         return new FormTemplateDetectionResult
         {
             IsTemplate = heuristicResult,
