@@ -54,6 +54,7 @@ tei_cache/
 data/**
 !data/.gitkeep
 !data/README.md
+!data/form-registry.json
 
 # Logs
 logs/

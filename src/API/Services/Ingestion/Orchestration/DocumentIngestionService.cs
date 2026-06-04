@@ -2,6 +2,7 @@ using PolicyBot.Api.Models;
 using PolicyBot.Api.Providers;
 using PolicyBot.Api.Services.Ingestion.Chunking;
 using PolicyBot.Api.Services.Ingestion.Classification;
+using PolicyBot.Api.Services.Ingestion.Forms;
 using PolicyBot.Api.Services.Ingestion.Parsers;
 using PolicyBot.Api.Services.Ingestion.Storage;
 using PolicyBot.Api.Services.Shared;
@@ -14,6 +15,7 @@ public class DocumentIngestionService(
     XlsxParserService xlsxParserService,
     FileConversionService fileConversionService,
     DocumentClassifierService documentClassifierService,
+    FormMentionExtractorService formMentionExtractorService,
     FormTemplateDetectorService formTemplateDetectorService,
     TemplateStorageService templateStorageService,
     TextChunkerService textChunkerService,
@@ -37,6 +39,15 @@ public class DocumentIngestionService(
         var parseResult = await ParseDocumentAsync(document, extension, ct);
         var resolvedAgent = await documentClassifierService.DetermineAgentAsync(parseResult.Chunks, requestedAgent, ct);
         DocumentClassifierService.ApplyAgent(parseResult.Chunks, resolvedAgent);
+
+        if (extension == ".pdf")
+        {
+            await formMentionExtractorService.ExtractPdfFormMentionsAsync(
+                document.OriginalFileName,
+                parseResult.Chunks,
+                resolvedAgent,
+                ct);
+        }
 
         var template = await StoreTemplateIfDetectedAsync(
             parseResult.TemplateCandidatePath,

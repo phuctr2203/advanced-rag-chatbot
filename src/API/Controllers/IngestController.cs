@@ -35,6 +35,11 @@ public class IngestController(
             return BadRequest(new { error = "Upload a non-empty document." });
         }
 
+        if (!IsSupportedDocument(file.FileName))
+        {
+            return BadRequest(new { error = $"Unsupported file type '{Path.GetExtension(file.FileName)}'." });
+        }
+
         try
         {
             var document = await documentStorageService.SaveAsync(file, ct);
@@ -228,6 +233,11 @@ public class IngestController(
         }
 
         return BadRequest(new { error = "Invalid agent. Valid values are ELCA_HR, ELCA_GENERAL, CII_TOWER_SUPPORT." });
+    }
+
+    private static bool IsSupportedDocument(string fileName)
+    {
+        return Path.GetExtension(fileName).ToLowerInvariant() is ".pdf" or ".pptx" or ".docx" or ".doc" or ".xlsx";
     }
 
     private static object ToParseResponse(

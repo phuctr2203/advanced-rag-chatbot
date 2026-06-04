@@ -11,6 +11,7 @@ public class ConfiguredPathResolver(IOptions<IngestionOptions> options, IWebHost
     public string ImageStorePath => Resolve(_options.ImageStorePath);
     public string TemplatesStorePath => Resolve(_options.TemplatesStorePath);
     public string TempPath => Resolve(_options.TempPath);
+    public string DataPath => Resolve(_options.DataPath);
 
     private string Resolve(string configuredPath)
     {

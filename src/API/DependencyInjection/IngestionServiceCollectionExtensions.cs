@@ -1,5 +1,6 @@
 using PolicyBot.Api.Services.Ingestion.Chunking;
 using PolicyBot.Api.Services.Ingestion.Classification;
+using PolicyBot.Api.Services.Ingestion.Forms;
 using PolicyBot.Api.Services.Ingestion.Images;
 using PolicyBot.Api.Services.Ingestion.Ocr;
 using PolicyBot.Api.Services.Ingestion.Orchestration;
@@ -16,6 +17,7 @@ public static class IngestionServiceCollectionExtensions
         services.AddScoped<UploadedDocumentStorageService>();
         services.AddScoped<TemplateStorageService>();
         services.AddScoped<FormTemplateDetectorService>();
+        services.AddScoped<FormMentionExtractorService>();
         services.AddScoped<DocumentClassifierService>();
         services.AddScoped<TextChunkerService>();
         services.AddScoped<ImageCaptioningService>();
