@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using PolicyBot.Api.Models;
 using PolicyBot.Api.Services.Ingestion.Chunking;
 using PolicyBot.Api.Services.Ingestion.Classification;
+using PolicyBot.Api.Services.Ingestion.Orchestration;
 using PolicyBot.Api.Services.Ingestion.Parsers;
 using PolicyBot.Api.Services.Ingestion.Storage;
 
@@ -17,18 +18,45 @@ public class IngestController(
     UploadedDocumentStorageService documentStorageService,
     FormTemplateDetectorService formTemplateDetectorService,
     DocumentClassifierService documentClassifierService,
+    DocumentIngestionService documentIngestionService,
     TextChunkerService textChunkerService,
     TemplateStorageService templateStorageService) : ControllerBase
 {
     [HttpPost]
-    public IActionResult Ingest(IFormFile file, [FromQuery] string? agent)
+    public async Task<IActionResult> Ingest(IFormFile file, [FromQuery] string? agent, CancellationToken ct)
     {
         if (InvalidAgentResponse(agent) is { } invalidAgent)
         {
             return invalidAgent;
         }
 
-        return StatusCode(StatusCodes.Status501NotImplemented, new { error = "Full ingest endpoint starts in Phase 2.15." });
+        if (file.Length == 0)
+        {
+            return BadRequest(new { error = "Upload a non-empty document." });
+        }
+
+        try
+        {
+            var document = await documentStorageService.SaveAsync(file, ct);
+            var result = await documentIngestionService.IngestAsync(document, agent, ct);
+
+            return Ok(new
+            {
+                message = $"{result.FileName} ingested successfully",
+                agent = result.Agent,
+                chunks = result.ChunkCount,
+                document = ToDocumentResponse(document),
+                template = ToTemplateResponse(result.Template)
+            });
+        }
+        catch (NotSupportedException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
+        catch (ArgumentException exception) when (exception.ParamName is "requestedAgent" or "agent")
+        {
+            return BadRequest(new { error = exception.Message });
+        }
     }
 
     [HttpPost("parse/pdf")]

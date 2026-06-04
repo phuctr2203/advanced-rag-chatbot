@@ -522,6 +522,10 @@ Response:
 - Return `400` for unsupported file types
 - Return `400` for invalid agent values
 
+Implementation note:
+- The endpoint persists the uploaded original with `UploadedDocumentStorageService` before ingestion.
+- The response keeps the required `message`, `agent`, and `chunks` fields and also returns stored `document` metadata plus optional `template` metadata for future UI linking.
+
 ---
 
 ## Task 2.16 — Static image serving
