@@ -68,10 +68,10 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
  
 ## Phase 3 — RAG query pipeline
  
-- [ ] 3.1 Language detection service
-- [ ] 3.2 Intent classifier — fast path
-- [ ] 3.3 Intent classifier — LLM fallback
-- [ ] 3.4 Intent response templates (all 4 languages)
+- [x] 3.1 Language detection service
+- [x] 3.2 Intent classifier — fast path
+- [x] 3.3 Intent classifier — LLM fallback
+- [x] 3.4 Intent response templates (all 4 languages)
 - [ ] 3.5 Vector search (no agent filter)
 - [ ] 3.6 Prompt builder
 - [ ] 3.7 LLM streaming service
@@ -130,4 +130,6 @@ Start only after Phase 5 is complete.
 - 2026-06-04: Verified task 2.19 by querying Qdrant collection `rag_policy_docs`; DOCX template chunks include `is_form_template: true` and `template_path`.
 - 2026-06-04: Verified task 2.20 against running API on `http://localhost:5000`; `/templates/9ee96f17670f8f0e_Payment%20request%20form.docx` returned `200` with DOCX content type.
 - 2026-06-04: Implemented Enhancement Phase 2.2 backend. Verified template upload generated `data/form-registry-suggestions.json` using draft entries + template metadata; local LLM was unavailable, so filename/template-text heuristic fallback produced a `pending_review` suggestion with confidence `0.89`. Verified review endpoints for list, choose-template, accept, and reject. UI review flow remains unchecked.
+- 2026-06-05: Implemented Phase 3 tasks 3.1-3.4 query foundation. Verified language detection and fast-path intent via `POST /verify/query-intent` for English, Vietnamese, French, and German deterministic cases. Verified static intent responses for smalltalk/no-results. Task 3.3 LLM fallback is implemented with safe default to `POLICY_QUERY`, but left unchecked because the local verification run could not reach the configured LLM endpoint.
+- 2026-06-05: Verified task 3.3 after API restart on `http://localhost:5000`; `POST /verify/query-intent` with `What is the capital of France?` returned `intent: OutOfScope` using LLM language detection/fallback and the out-of-scope response template.
  

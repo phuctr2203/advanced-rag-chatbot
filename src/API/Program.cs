@@ -14,6 +14,7 @@ builder.Services
     .AddConfiguredOptions(builder.Configuration)
     .AddProviderServices()
     .AddIngestionServices()
+    .AddQueryServices()
     .AddVectorServices();
 
 var app = builder.Build();

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PolicyBot.Api.Providers;
+using PolicyBot.Api.Services.Query;
 using PolicyBot.Api.Services.Shared;
 
 namespace PolicyBot.Api.Controllers;
@@ -10,7 +11,9 @@ public class VerificationController(
     ILlmProvider llmProvider,
     IVisionProvider visionProvider,
     IEmbeddingProvider embeddingProvider,
-    IVectorStoreService vectorStoreService) : ControllerBase
+    IVectorStoreService vectorStoreService,
+    LanguageDetectionService languageDetectionService,
+    IntentClassifierService intentClassifierService) : ControllerBase
 {
     [HttpPost("llm")]
     public async Task<IActionResult> VerifyLlm(CancellationToken ct)
@@ -52,4 +55,29 @@ public class VerificationController(
         var passed = vectors.Count == 1 && await ((VectorStoreService)vectorStoreService).VerifyRoundTripAsync(vectors[0], ct);
         return Ok(new { passed });
     }
+
+    [HttpPost("query-intent")]
+    public async Task<IActionResult> VerifyQueryIntent([FromBody] QueryIntentVerificationRequest request, CancellationToken ct)
+    {
+        var language = await languageDetectionService.DetectAsync(request.Message, ct);
+        var intent = await intentClassifierService.ClassifyAsync(request.Message, ct);
+        var response = intent switch
+        {
+            QueryIntent.Smalltalk => IntentResponses.Smalltalk(language.Language),
+            QueryIntent.OutOfScope => IntentResponses.OutOfScope(language.Language),
+            _ => IntentResponses.NoResults(language.Language)
+        };
+
+        return Ok(new
+        {
+            language,
+            intent = intent.ToString(),
+            response
+        });
+    }
+}
+
+public class QueryIntentVerificationRequest
+{
+    public string Message { get; set; } = string.Empty;
 }
