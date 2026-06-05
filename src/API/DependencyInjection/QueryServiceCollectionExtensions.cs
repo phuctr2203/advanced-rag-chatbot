@@ -8,6 +8,9 @@ public static class QueryServiceCollectionExtensions
     {
         services.AddScoped<LanguageDetectionService>();
         services.AddScoped<IntentClassifierService>();
+        services.AddScoped<PromptBuilderService>();
+        services.AddScoped<LlmService>();
+        services.AddScoped<SourceCitationParser>();
 
         return services;
     }

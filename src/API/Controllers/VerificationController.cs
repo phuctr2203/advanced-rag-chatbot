@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PolicyBot.Api.Models;
 using PolicyBot.Api.Providers;
 using PolicyBot.Api.Services.Query;
 using PolicyBot.Api.Services.Shared;
@@ -13,7 +14,10 @@ public class VerificationController(
     IEmbeddingProvider embeddingProvider,
     IVectorStoreService vectorStoreService,
     LanguageDetectionService languageDetectionService,
-    IntentClassifierService intentClassifierService) : ControllerBase
+    IntentClassifierService intentClassifierService,
+    PromptBuilderService promptBuilderService,
+    LlmService llmService,
+    SourceCitationParser sourceCitationParser) : ControllerBase
 {
     [HttpPost("llm")]
     public async Task<IActionResult> VerifyLlm(CancellationToken ct)
@@ -103,6 +107,111 @@ public class VerificationController(
             })
         });
     }
+
+    [HttpPost("prompt-builder")]
+    public IActionResult VerifyPromptBuilder([FromBody] PromptBuilderVerificationRequest request)
+    {
+        var chunks = new List<ScoredChunk>
+        {
+            new()
+            {
+                Score = 0.82f,
+                Chunk = new ParsedChunk
+                {
+                    Text = "Employees must follow the CII Tower fire alarm and evacuation procedure.",
+                    SourceFile = "emergency-handbook.pdf",
+                    PageNumber = 7,
+                    ChunkIndex = 0,
+                    ChunkType = "text",
+                    FileType = "pdf",
+                    Agent = "CII_TOWER_SUPPORT"
+                }
+            }
+        };
+
+        var prompt = promptBuilderService.Build(request.Query, chunks, request.Language);
+        return Ok(new
+        {
+            prompt,
+            passed =
+                prompt.Contains("Answer ONLY based on the provided context.", StringComparison.Ordinal)
+                && prompt.Contains("SOURCES: filename.pdf (page N)", StringComparison.Ordinal)
+                && prompt.Contains("Source: emergency-handbook.pdf (page 7)", StringComparison.Ordinal)
+                && prompt.Contains(request.Query, StringComparison.Ordinal)
+        });
+    }
+
+    [HttpPost("llm-service")]
+    public async Task<IActionResult> VerifyLlmService(CancellationToken ct)
+    {
+        var completion = await llmService.CompleteAsync("Reply with exactly one word: OK", maxTokens: 10, ct);
+        var streamed = new List<string>();
+        await foreach (var token in llmService.StreamAsync("Reply with exactly one word: OK", ct))
+        {
+            streamed.Add(token);
+            if (string.Concat(streamed).Length >= 20)
+            {
+                break;
+            }
+        }
+
+        return Ok(new
+        {
+            completion,
+            streamPreview = string.Concat(streamed),
+            passed = !string.IsNullOrWhiteSpace(completion) && streamed.Count > 0
+        });
+    }
+
+    [HttpPost("source-citations")]
+    public IActionResult VerifySourceCitations()
+    {
+        var response = "Use the fire hose cabinet during fire response.\nSOURCES: handbook.pdf (page 8), payment-form.docx (page 1)";
+        var searchResults = new List<ScoredChunk>
+        {
+            new()
+            {
+                Score = 0.75f,
+                Chunk = new ParsedChunk
+                {
+                    Text = "The image shows a red emergency fire hose cabinet.",
+                    SourceFile = "handbook.pdf",
+                    PageNumber = 8,
+                    ChunkIndex = 1,
+                    ChunkType = "image_caption",
+                    FileType = "pdf",
+                    Agent = "CII_TOWER_SUPPORT",
+                    ImagePath = "/images/handbook/page8_img2.jpg"
+                }
+            },
+            new()
+            {
+                Score = 0.71f,
+                Chunk = new ParsedChunk
+                {
+                    Text = "Payment request form template.",
+                    SourceFile = "payment-form.docx",
+                    PageNumber = 1,
+                    ChunkIndex = 0,
+                    ChunkType = "text",
+                    FileType = "docx",
+                    Agent = "ELCA_GENERAL",
+                    IsFormTemplate = true,
+                    TemplatePath = "/templates/payment-form.docx"
+                }
+            }
+        };
+
+        var sources = sourceCitationParser.Parse(response, searchResults);
+        return Ok(new
+        {
+            sources,
+            passed =
+                sources.Count == 2
+                && sources.Any(source => source.ChunkType == "image_caption" && source.ImagePath == "/images/handbook/page8_img2.jpg")
+                && sources.Any(source => source.FormDownload?.DownloadPath == "/templates/payment-form.docx")
+        });
+    }
 }
 
 public class QueryIntentVerificationRequest
@@ -114,4 +223,10 @@ public class VectorSearchVerificationRequest
 {
     public string Query { get; set; } = string.Empty;
     public int Limit { get; set; } = 6;
+}
+
+public class PromptBuilderVerificationRequest
+{
+    public string Query { get; set; } = "What is the fire alarm procedure?";
+    public string Language { get; set; } = "en";
 }

@@ -73,9 +73,9 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 3.3 Intent classifier — LLM fallback
 - [x] 3.4 Intent response templates (all 4 languages)
 - [x] 3.5 Vector search (no agent filter)
-- [ ] 3.6 Prompt builder
-- [ ] 3.7 LLM streaming service
-- [ ] 3.8 Source citation parser — updated `SourceRef` with `FormDownload`
+- [x] 3.6 Prompt builder
+- [x] 3.7 LLM streaming service
+- [x] 3.8 Source citation parser — updated `SourceRef` with `FormDownload`
 - [ ] 3.9 `FormRegistryService` — loads `form-registry.json`, lookup by file and alias
 - [ ] 3.10 Form download enrichment in `ChatOrchestrator`
 - [ ] 3.11 `POST /api/chat` SSE endpoint — sources include form download refs
@@ -133,4 +133,5 @@ Start only after Phase 5 is complete.
 - 2026-06-05: Implemented Phase 3 tasks 3.1-3.4 query foundation. Verified language detection and fast-path intent via `POST /verify/query-intent` for English, Vietnamese, French, and German deterministic cases. Verified static intent responses for smalltalk/no-results. Task 3.3 LLM fallback is implemented with safe default to `POLICY_QUERY`, but left unchecked because the local verification run could not reach the configured LLM endpoint.
 - 2026-06-05: Verified task 3.3 after API restart on `http://localhost:5000`; `POST /verify/query-intent` with `What is the capital of France?` returned `intent: OutOfScope` using LLM language detection/fallback and the out-of-scope response template.
 - 2026-06-05: Implemented and verified task 3.5 vector search. `POST /verify/vector-search` embeds the query, searches Qdrant with `agent = null`, applies the `0.45` score threshold, and returns top results with text/image-caption metadata. Verified locally with `fire hose cabinet and fire alarm equipment in CII Tower`; returned 6 results including `image_caption` and `text` chunks.
+- 2026-06-05: Implemented and verified tasks 3.6-3.8. `POST /verify/prompt-builder` verified grounded context prompt + required `SOURCES` format, `POST /verify/llm-service` verified completion and streaming through the configured LLM provider, and `POST /verify/source-citations` verified citation parsing with image-caption `ImagePath` plus template `FormDownload`.
  
