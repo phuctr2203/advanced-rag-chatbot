@@ -331,6 +331,130 @@ Also test intent handling:
 
 ---
 
+## Enhancement Phase 3.1 — Hybrid retrieval
+
+Current Phase 3 retrieval uses dense vector search only. Dense retrieval is strong for semantic matching, but it can miss exact identifiers, form names, policy codes, acronyms, article numbers, and bilingual legal/form wording.
+
+Add hybrid retrieval so the query pipeline can combine semantic vector search with keyword/lexical matching.
+
+Why this matters:
+- Dense search helps with meaning-level matches, for example “seniority leave entitlement” matching “additional annual leave days”.
+- Keyword search helps with exact terms, for example `SCH-HR-003`, `Payment Request Form`, `GIẤY ĐỀ NGHỊ THANH TOÁN`, `CII Tower`, `Article 4`, and form/template names.
+- `bge-m3` supports hybrid retrieval concepts: dense embeddings for semantic similarity and sparse lexical representations for keyword-style matching. If the active embedding service exposes sparse vectors later, Qdrant can store sparse vectors directly.
+
+### Enhancement 3.1 tasks
+
+#### Task 3.H1 — Retrieval configuration
+
+Add query retrieval options:
+
+```json
+{
+  "Retrieval": {
+    "Mode": "Hybrid",
+    "DenseWeight": 0.7,
+    "KeywordWeight": 0.3,
+    "ExactMatchKeywordWeight": 0.5,
+    "Limit": 6,
+    "CandidateLimit": 20,
+    "MinimumScore": 0.45
+  }
+}
+```
+
+Supported modes:
+- `Dense` — current vector-only behavior
+- `Keyword` — lexical-only search, mostly for diagnostics
+- `Hybrid` — default target mode
+
+#### Task 3.H2 — Keyword search service
+
+Implement `KeywordSearchService`.
+
+Initial pragmatic version:
+- Search over Qdrant payload text/source metadata, or a lightweight in-memory lexical index built from stored chunks.
+- Match normalized query terms against:
+  - `text`
+  - `source_file`
+  - `chunk_type`
+  - `file_type`
+  - `template_path`
+- Boost exact phrase matches and identifier-like tokens.
+
+Identifier-like tokens include:
+- policy codes such as `SCH-HR-003`
+- form names such as `Payment Request Form`
+- Vietnamese form titles such as `GIẤY ĐỀ NGHỊ THANH TOÁN`
+- article/page references such as `Article 4`
+- acronyms such as `CII`, `PCCC`, `HR`
+
+#### Task 3.H3 — Hybrid search service
+
+Implement `HybridSearchService`.
+
+Flow:
+1. Run dense vector search with a larger candidate limit.
+2. Run keyword search with the same candidate limit.
+3. Merge candidates by stable chunk identity: `source_file + page + chunk_index + chunk_type`.
+4. Normalize dense and keyword scores to `0..1`.
+5. Compute final score:
+
+```text
+final_score = DenseWeight * dense_score + KeywordWeight * keyword_score
+```
+
+If the query contains identifier-like tokens or exact form/policy names:
+
+```text
+final_score = ExactMatchKeywordWeight * keyword_score
+            + (1 - ExactMatchKeywordWeight) * dense_score
+```
+
+Return the top configured `Limit` results.
+
+#### Task 3.H4 — Chat pipeline integration
+
+Update `ChatOrchestrator` to call the configured retrieval mode:
+- `Dense` uses the existing vector search path.
+- `Keyword` uses keyword search only.
+- `Hybrid` uses merged/reranked results.
+
+Keep the existing `ScoredChunk` model so downstream prompt building and citation parsing do not need to change.
+
+#### Task 3.H5 — bge-m3 sparse-vector investigation
+
+Investigate whether the current TEI deployment exposes bge-m3 sparse lexical vectors.
+
+If available:
+- Extend Qdrant collection schema to store dense and sparse vectors.
+- Upsert dense and sparse vectors during ingestion.
+- Use Qdrant native hybrid search or query fusion.
+
+If not available:
+- Keep the pragmatic keyword service as the Phase 3 enhancement implementation.
+- Document sparse-vector support as a future optimization.
+
+#### Task 3.H6 — Hybrid retrieval verification
+
+Verify retrieval with questions that exercise both dense and keyword behavior:
+
+| Case | Query | Expected behavior |
+|---|---|---|
+| Semantic | "How many annual leave days do employees get with seniority?" | Finds annual-leave policy even if wording differs |
+| Policy code | "SCH-HR-003" | Finds the exact annual-leave policy |
+| Form name | "Payment Request Form" | Finds the DOCX form template and download path |
+| Vietnamese form title | "GIẤY ĐỀ NGHỊ THANH TOÁN" | Finds payment request form/process |
+| Acronym | "PCCC equipment" | Finds CII Tower fire safety content |
+| Article reference | "Article 4 annual leave" | Finds the annual-leave policy page with Article 4 |
+
+Report comparison:
+- Dense-only top results
+- Keyword-only top results
+- Hybrid top results
+- Which strategy produced the best citation/source match
+
+---
+
 ## Done criteria
 
 - Language detection returns correct ISO code for EN, VI, FR, DE

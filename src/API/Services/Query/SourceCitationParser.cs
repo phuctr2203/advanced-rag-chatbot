@@ -20,27 +20,29 @@ public partial class SourceCitationParser(FormRegistryService formRegistry)
         foreach (Match match in CitationRegex().Matches(sourceLine))
         {
             var file = match.Groups["file"].Value.Trim();
-            var page = int.TryParse(match.Groups["page"].Value, out var parsedPage) ? parsedPage : 0;
-            var result = FindMatchingResult(searchResults, file, page);
-            if (result is null)
+            foreach (var page in ParsePages(match.Groups["pages"].Value))
             {
-                sources.Add(new SourceRef { File = file, Page = page });
-                continue;
-            }
+                var result = FindMatchingResult(searchResults, file, page);
+                if (result is null)
+                {
+                    sources.Add(new SourceRef { File = file, Page = page });
+                    continue;
+                }
 
-            var chunk = result.Chunk;
-            sources.Add(new SourceRef
-            {
-                File = chunk.SourceFile,
-                Page = chunk.PageNumber,
-                ChunkType = chunk.ChunkType,
-                ImagePath = chunk.ChunkType.Equals("image_caption", StringComparison.OrdinalIgnoreCase)
-                    ? chunk.ImagePath
-                    : string.Empty,
-                FormDownload = chunk.IsFormTemplate
-                    ? formRegistry.FindByFile(chunk.SourceFile) ?? CreateFormDownloadFallback(chunk)
-                    : null
-            });
+                var chunk = result.Chunk;
+                sources.Add(new SourceRef
+                {
+                    File = chunk.SourceFile,
+                    Page = chunk.PageNumber,
+                    ChunkType = chunk.ChunkType,
+                    ImagePath = chunk.ChunkType.Equals("image_caption", StringComparison.OrdinalIgnoreCase)
+                        ? chunk.ImagePath
+                        : string.Empty,
+                    FormDownload = chunk.IsFormTemplate
+                        ? formRegistry.FindByFile(chunk.SourceFile) ?? CreateFormDownloadFallback(chunk)
+                        : null
+                });
+            }
         }
 
         return sources
@@ -62,6 +64,16 @@ public partial class SourceCitationParser(FormRegistryService formRegistry)
             .FirstOrDefault();
     }
 
+    private static IReadOnlyList<int> ParsePages(string value)
+    {
+        return PageNumberRegex()
+            .Matches(value)
+            .Select(match => int.TryParse(match.Value, out var page) ? page : 0)
+            .Where(page => page > 0)
+            .Distinct()
+            .ToList();
+    }
+
     private static FormDownloadRef? CreateFormDownloadFallback(ParsedChunk chunk)
     {
         if (!chunk.IsFormTemplate || string.IsNullOrWhiteSpace(chunk.TemplatePath))
@@ -76,6 +88,9 @@ public partial class SourceCitationParser(FormRegistryService formRegistry)
         };
     }
 
-    [GeneratedRegex(@"(?<file>[^,:\r\n]+?\.[A-Za-z0-9]+)\s*\(page\s+(?<page>\d+)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"(?<file>[^,:\r\n]+?\.[A-Za-z0-9]+)\s*\(pages?\s+(?<pages>\d+(?:\s*[,;/&]\s*\d+)*)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex CitationRegex();
+
+    [GeneratedRegex(@"\d+", RegexOptions.Compiled)]
+    private static partial Regex PageNumberRegex();
 }
