@@ -83,12 +83,12 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 
 ### Enhancement Phase 3.1 — Hybrid retrieval
 
-- [ ] 3.H1 Retrieval configuration (`Dense`, `Keyword`, `Hybrid`)
-- [ ] 3.H2 Keyword search service for exact terms, codes, form names, and acronyms
-- [ ] 3.H3 Hybrid search service with score merge/rerank
-- [ ] 3.H4 Chat pipeline integration with configurable retrieval mode
-- [ ] 3.H5 bge-m3 sparse-vector support investigation
-- [ ] 3.H6 Hybrid retrieval verification and dense/keyword/hybrid comparison
+- [x] 3.H1 Hybrid retrieval configuration
+- [x] 3.H2 Keyword search service for exact terms, codes, form names, and acronyms
+- [x] 3.H3 Hybrid search service with score merge/rerank
+- [x] 3.H4 Chat pipeline integration with hybrid retrieval
+- [x] 3.H5 bge-m3 sparse-vector decision documented
+- [x] 3.H6 Hybrid retrieval verification and dense/keyword/hybrid comparison
 
 ## Phase 4 — Frontend
 
@@ -148,4 +148,7 @@ Start only after Phase 5 is complete.
 - 2026-06-05: Initial task 3.12 verification was blocked because the available Qdrant data only contained CII Tower content; the annual-leave corpus, final registry mapping, and downloadable payment-request template were not available yet.
 - 2026-06-05: Verified task 3.12 after ingesting annual-leave and payment-request documents/templates. Annual-leave questions in EN/VI/FR/DE returned grounded SSE answers with `Attribution of additional annual leave days with seniority.pdf` citations. Payment-request queries returned `/templates/9ee96f17670f8f0e_Payment request form.docx` in both alias-level `formDownloads` and direct DOCX source `formDownload`. Static template download returned `200 OK`. CII Tower image query returned `image_caption` sources with populated `imagePath`. Smalltalk, out-of-scope, and no-results paths returned empty source events as expected.
 - 2026-06-05: Added Enhancement Phase 3.1 hybrid retrieval plan to `docs/phases/phase-3-rag-pipeline.md` and mirrored unchecked tasks in this progress file. Scope covers retrieval config, keyword search, hybrid reranking, chat integration, bge-m3 sparse-vector investigation, and verification comparing dense/keyword/hybrid results.
+- 2026-06-05: Implemented and verified Enhancement Phase 3.1 tasks 3.H1-3.H5. Added hybrid search options, keyword search over Qdrant chunk payloads, hybrid dense/keyword merge and rerank, and direct chat integration through `HybridSearchService`. Documented bge-m3 sparse-vector support as a future optimization because current TEI `/embed` integration returns dense vectors only. Verified hybrid retrieval for `SCH-HR-003`, `Payment Request Form`, `GIẤY ĐỀ NGHỊ THANH TOÁN`, `Article 4 annual leave`, and `PCCC equipment`; chat-level `SCH-HR-003` returned annual-leave sources. `3.H6` remains open for formal dense/keyword/hybrid comparison reporting.
+- 2026-06-05: Verified Enhancement Phase 3.1 task 3.H6 against 177 Qdrant points. Dense/keyword/hybrid comparison covered semantic annual leave, `SCH-HR-003`, `Payment Request Form`, `GIẤY ĐỀ NGHỊ THANH TOÁN`, `PCCC equipment`, and `Article 4 annual leave`. Added `docs/reports/hybrid-retrieval-comparison.md`. Result: keep `Hybrid` as the default retrieval mode because it preserves semantic recall and recovers exact-code/form/acronym queries that dense search can miss.
+- 2026-06-05: Simplified hybrid retrieval enhancement after choosing hybrid as final behavior. Removed runtime retrieval mode switching and debug-only helper endpoints/classes. Renamed retrieval config to `HybridSearch`; `ChatOrchestrator` now injects `HybridSearchService` directly. Kept dense/keyword outputs only in `/verify/hybrid-search` diagnostics for reporting. Verified `SCH-HR-003` through diagnostics and `/api/chat`.
  

@@ -110,6 +110,32 @@ public class VectorStoreService(IOptions<QdrantOptions> options, IEmbeddingProvi
         return await SearchAsync(embeddings[0], agent: null, limit, ct);
     }
 
+    public async Task<IReadOnlyList<ParsedChunk>> ListChunksAsync(int limit = 2048, CancellationToken ct = default)
+    {
+        await EnsureCollectionAsync(ct);
+
+        var chunks = new List<ParsedChunk>();
+        PointId? offset = null;
+
+        do
+        {
+            var batchLimit = Math.Min(Math.Max(limit - chunks.Count, 1), 256);
+            var response = await _client.ScrollAsync(
+                _options.CollectionName,
+                limit: (uint)batchLimit,
+                offset: offset,
+                payloadSelector: true,
+                vectorsSelector: false,
+                cancellationToken: ct);
+
+            chunks.AddRange(response.Result.Select(point => FromPayload(point.Payload)));
+            offset = response.NextPageOffset;
+        }
+        while (offset is not null && chunks.Count < limit);
+
+        return chunks;
+    }
+
     public async Task<bool> VerifyRoundTripAsync(float[] vector, CancellationToken ct = default)
     {
         var chunk = new ParsedChunk

@@ -11,6 +11,7 @@ public static class OptionsServiceCollectionExtensions
         services.Configure<EmbeddingOptions>(configuration.GetSection("Embedding"));
         services.Configure<QdrantOptions>(configuration.GetSection("Qdrant"));
         services.Configure<IngestionOptions>(configuration.GetSection("Ingestion"));
+        services.Configure<HybridSearchOptions>(configuration.GetSection("HybridSearch"));
 
         return services;
     }

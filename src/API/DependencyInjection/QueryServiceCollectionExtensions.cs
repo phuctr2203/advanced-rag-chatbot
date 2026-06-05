@@ -14,6 +14,8 @@ public static class QueryServiceCollectionExtensions
         services.AddScoped<LlmService>();
         services.AddScoped<SourceCitationParser>();
         services.AddScoped<FormDownloadEnrichmentService>();
+        services.AddScoped<KeywordSearchService>();
+        services.AddScoped<HybridSearchService>();
         services.AddScoped<ChatOrchestrator>();
 
         return services;

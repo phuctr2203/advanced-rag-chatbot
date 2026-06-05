@@ -21,7 +21,8 @@ public class VerificationController(
     SourceCitationParser sourceCitationParser,
     FormRegistryService formRegistryService,
     FormDownloadEnrichmentService formDownloadEnrichmentService,
-    ConfiguredPathResolver pathResolver) : ControllerBase
+    ConfiguredPathResolver pathResolver,
+    HybridSearchService hybridSearchService) : ControllerBase
 {
     [HttpPost("llm")]
     public async Task<IActionResult> VerifyLlm(CancellationToken ct)
@@ -109,6 +110,21 @@ public class VerificationController(
                 isFormTemplate = result.Chunk.IsFormTemplate,
                 templatePath = result.Chunk.TemplatePath
             })
+        });
+    }
+
+    [HttpPost("hybrid-search")]
+    public async Task<IActionResult> VerifyHybridSearch([FromBody] VectorSearchVerificationRequest request, CancellationToken ct)
+    {
+        var diagnostics = await hybridSearchService.CompareAsync(request.Query, ct);
+
+        return Ok(new
+        {
+            diagnostics.Query,
+            dense = ToSearchResultResponse(diagnostics.Dense),
+            keyword = ToSearchResultResponse(diagnostics.Keyword),
+            hybrid = ToSearchResultResponse(diagnostics.Hybrid),
+            passed = diagnostics.Hybrid.Count > 0
         });
     }
 
@@ -308,6 +324,25 @@ public class VerificationController(
             """);
 
         return registryPath;
+    }
+
+    private static IEnumerable<object> ToSearchResultResponse(IReadOnlyList<ScoredChunk> results)
+    {
+        return results.Select(result => new
+        {
+            score = result.Score,
+            text = result.Chunk.Text,
+            sourceFile = result.Chunk.SourceFile,
+            pageNumber = result.Chunk.PageNumber,
+            chunkIndex = result.Chunk.ChunkIndex,
+            chunkType = result.Chunk.ChunkType,
+            fileType = result.Chunk.FileType,
+            agent = result.Chunk.Agent,
+            imagePath = result.Chunk.ImagePath,
+            imagePaths = result.Chunk.ImagePaths,
+            isFormTemplate = result.Chunk.IsFormTemplate,
+            templatePath = result.Chunk.TemplatePath
+        });
     }
 }
 

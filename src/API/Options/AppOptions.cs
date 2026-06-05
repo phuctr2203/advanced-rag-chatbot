@@ -53,3 +53,13 @@ public class IngestionOptions
     public int PdfOcrMinimumAverageWordsPerPage { get; set; } = 10;
     public string OcrMyPdfExecutable { get; set; } = "ocrmypdf";
 }
+
+public class HybridSearchOptions
+{
+    public float DenseWeight { get; set; } = 0.7f;
+    public float KeywordWeight { get; set; } = 0.3f;
+    public float ExactMatchKeywordWeight { get; set; } = 0.5f;
+    public int Limit { get; set; } = 6;
+    public int CandidateLimit { get; set; } = 20;
+    public float MinimumScore { get; set; } = 0.45f;
+}

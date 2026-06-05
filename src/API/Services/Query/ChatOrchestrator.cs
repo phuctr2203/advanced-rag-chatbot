@@ -1,14 +1,13 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using PolicyBot.Api.Models;
-using PolicyBot.Api.Services.Shared;
 
 namespace PolicyBot.Api.Services.Query;
 
 public class ChatOrchestrator(
     LanguageDetectionService languageDetectionService,
     IntentClassifierService intentClassifierService,
-    IVectorStoreService vectorStoreService,
+    HybridSearchService hybridSearchService,
     PromptBuilderService promptBuilderService,
     LlmService llmService,
     SourceCitationParser sourceCitationParser,
@@ -38,7 +37,7 @@ public class ChatOrchestrator(
             yield break;
         }
 
-        var searchResults = await vectorStoreService.SearchAsync(message, limit: 6, ct);
+        var searchResults = await hybridSearchService.SearchAsync(message, ct);
         if (searchResults.Count == 0)
         {
             yield return IntentResponses.NoResults(language.Language);

@@ -350,8 +350,7 @@ Add query retrieval options:
 
 ```json
 {
-  "Retrieval": {
-    "Mode": "Hybrid",
+  "HybridSearch": {
     "DenseWeight": 0.7,
     "KeywordWeight": 0.3,
     "ExactMatchKeywordWeight": 0.5,
@@ -362,10 +361,7 @@ Add query retrieval options:
 }
 ```
 
-Supported modes:
-- `Dense` — current vector-only behavior
-- `Keyword` — lexical-only search, mostly for diagnostics
-- `Hybrid` — default target mode
+Runtime retrieval always uses hybrid search. Dense-only and keyword-only results are kept only for diagnostics and reporting through verification endpoints.
 
 #### Task 3.H2 — Keyword search service
 
@@ -414,25 +410,23 @@ Return the top configured `Limit` results.
 
 #### Task 3.H4 — Chat pipeline integration
 
-Update `ChatOrchestrator` to call the configured retrieval mode:
-- `Dense` uses the existing vector search path.
-- `Keyword` uses keyword search only.
-- `Hybrid` uses merged/reranked results.
+Update `ChatOrchestrator` to call `HybridSearchService` directly.
 
 Keep the existing `ScoredChunk` model so downstream prompt building and citation parsing do not need to change.
 
-#### Task 3.H5 — bge-m3 sparse-vector investigation
+#### Task 3.H5 — bge-m3 sparse-vector decision
 
-Investigate whether the current TEI deployment exposes bge-m3 sparse lexical vectors.
+Decision: do not implement bge-m3 sparse-vector storage in Phase 3.
 
-If available:
-- Extend Qdrant collection schema to store dense and sparse vectors.
+The current implementation uses TEI `/embed` through `IEmbeddingProvider`, which returns dense float arrays only. Keep the final Phase 3 hybrid retrieval implementation as:
+- dense semantic search via existing embeddings
+- keyword lexical scoring over Qdrant chunk payloads
+- hybrid merge/rerank in `HybridSearchService`
+
+Future optimization:
+- If the embedding service exposes sparse lexical vectors later, extend the Qdrant collection schema to store dense and sparse vectors.
 - Upsert dense and sparse vectors during ingestion.
 - Use Qdrant native hybrid search or query fusion.
-
-If not available:
-- Keep the pragmatic keyword service as the Phase 3 enhancement implementation.
-- Document sparse-vector support as a future optimization.
 
 #### Task 3.H6 — Hybrid retrieval verification
 
