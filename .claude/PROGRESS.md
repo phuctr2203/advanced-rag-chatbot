@@ -76,8 +76,8 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 3.6 Prompt builder
 - [x] 3.7 LLM streaming service
 - [x] 3.8 Source citation parser — updated `SourceRef` with `FormDownload`
-- [ ] 3.9 `FormRegistryService` — loads `form-registry.json`, lookup by file and alias
-- [ ] 3.10 Form download enrichment in `ChatOrchestrator`
+- [x] 3.9 `FormRegistryService` — loads `form-registry.json`, lookup by file and alias
+- [x] 3.10 Form download enrichment in `ChatOrchestrator`
 - [ ] 3.11 `POST /api/chat` SSE endpoint — sources include form download refs
 - [ ] 3.12 End-to-end RAG verified in all 4 languages + form download verified
 
@@ -134,4 +134,5 @@ Start only after Phase 5 is complete.
 - 2026-06-05: Verified task 3.3 after API restart on `http://localhost:5000`; `POST /verify/query-intent` with `What is the capital of France?` returned `intent: OutOfScope` using LLM language detection/fallback and the out-of-scope response template.
 - 2026-06-05: Implemented and verified task 3.5 vector search. `POST /verify/vector-search` embeds the query, searches Qdrant with `agent = null`, applies the `0.45` score threshold, and returns top results with text/image-caption metadata. Verified locally with `fire hose cabinet and fire alarm equipment in CII Tower`; returned 6 results including `image_caption` and `text` chunks.
 - 2026-06-05: Implemented and verified tasks 3.6-3.8. `POST /verify/prompt-builder` verified grounded context prompt + required `SOURCES` format, `POST /verify/llm-service` verified completion and streaming through the configured LLM provider, and `POST /verify/source-citations` verified citation parsing with image-caption `ImagePath` plus template `FormDownload`.
+- 2026-06-05: Implemented and verified tasks 3.9-3.10. `FormRegistryService` loads `data/form-registry.json` at startup, tolerates missing/malformed files, reloads when the registry file changes, and supports lookup by template file or alias. `ChatOrchestrator` now enriches final source events with template download refs. Verified with `POST /verify/form-registry` and `POST /verify/form-download-enrichment`.
  

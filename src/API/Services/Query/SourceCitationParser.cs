@@ -3,7 +3,7 @@ using PolicyBot.Api.Models;
 
 namespace PolicyBot.Api.Services.Query;
 
-public partial class SourceCitationParser
+public partial class SourceCitationParser(FormRegistryService formRegistry)
 {
     public List<SourceRef> Parse(string response, IReadOnlyList<ScoredChunk> searchResults)
     {
@@ -37,7 +37,9 @@ public partial class SourceCitationParser
                 ImagePath = chunk.ChunkType.Equals("image_caption", StringComparison.OrdinalIgnoreCase)
                     ? chunk.ImagePath
                     : string.Empty,
-                FormDownload = CreateFormDownload(chunk)
+                FormDownload = chunk.IsFormTemplate
+                    ? formRegistry.FindByFile(chunk.SourceFile) ?? CreateFormDownloadFallback(chunk)
+                    : null
             });
         }
 
@@ -60,7 +62,7 @@ public partial class SourceCitationParser
             .FirstOrDefault();
     }
 
-    private static FormDownloadRef? CreateFormDownload(ParsedChunk chunk)
+    private static FormDownloadRef? CreateFormDownloadFallback(ParsedChunk chunk)
     {
         if (!chunk.IsFormTemplate || string.IsNullOrWhiteSpace(chunk.TemplatePath))
         {

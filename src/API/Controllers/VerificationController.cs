@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PolicyBot.Api.Models;
 using PolicyBot.Api.Providers;
+using PolicyBot.Api.Services.Ingestion.Storage;
 using PolicyBot.Api.Services.Query;
 using PolicyBot.Api.Services.Shared;
 
@@ -17,7 +18,10 @@ public class VerificationController(
     IntentClassifierService intentClassifierService,
     PromptBuilderService promptBuilderService,
     LlmService llmService,
-    SourceCitationParser sourceCitationParser) : ControllerBase
+    SourceCitationParser sourceCitationParser,
+    FormRegistryService formRegistryService,
+    FormDownloadEnrichmentService formDownloadEnrichmentService,
+    ConfiguredPathResolver pathResolver) : ControllerBase
 {
     [HttpPost("llm")]
     public async Task<IActionResult> VerifyLlm(CancellationToken ct)
@@ -211,6 +215,99 @@ public class VerificationController(
                 && sources.Any(source => source.ChunkType == "image_caption" && source.ImagePath == "/images/handbook/page8_img2.jpg")
                 && sources.Any(source => source.FormDownload?.DownloadPath == "/templates/payment-form.docx")
         });
+    }
+
+    [HttpPost("form-registry")]
+    public IActionResult VerifyFormRegistry()
+    {
+        var registryPath = WriteTemporaryRegistry();
+        try
+        {
+            formRegistryService.Load(registryPath);
+            var byFile = formRegistryService.FindByFile("payment-request-template.docx");
+            var byAlias = formRegistryService.FindByAlias("Please use the Payment Request Form for this process.");
+
+            return Ok(new
+            {
+                byFile,
+                byAlias,
+                passed =
+                    byFile?.DownloadPath == "/templates/payment-request-template.docx"
+                    && byAlias?.FormName == "Payment Request Form"
+            });
+        }
+        finally
+        {
+            formRegistryService.Load(Path.Combine(pathResolver.DataPath, "form-registry.json"));
+        }
+    }
+
+    [HttpPost("form-download-enrichment")]
+    public IActionResult VerifyFormDownloadEnrichment()
+    {
+        var registryPath = WriteTemporaryRegistry();
+        try
+        {
+            formRegistryService.Load(registryPath);
+            var response = "Submit the Payment Request Form.\nSOURCES: payment-request-template.docx (page 1)";
+            var searchResults = new List<ScoredChunk>
+            {
+                new()
+                {
+                    Score = 0.81f,
+                    Chunk = new ParsedChunk
+                    {
+                        Text = "Payment request form template.",
+                        SourceFile = "payment-request-template.docx",
+                        PageNumber = 1,
+                        ChunkIndex = 0,
+                        ChunkType = "text",
+                        FileType = "docx",
+                        Agent = "ELCA_GENERAL",
+                        IsFormTemplate = true,
+                        TemplatePath = "/templates/fallback-payment-request-template.docx"
+                    }
+                }
+            };
+
+            var sources = sourceCitationParser.Parse(response, searchResults);
+            var formDownloads = formDownloadEnrichmentService.FindDownloadRefs(response, []);
+            var duplicateDownloads = formDownloadEnrichmentService.FindDownloadRefs(response, sources);
+
+            return Ok(new
+            {
+                sources,
+                formDownloads,
+                duplicateDownloads,
+                passed =
+                    sources.SingleOrDefault()?.FormDownload?.DownloadPath == "/templates/payment-request-template.docx"
+                    && formDownloads.SingleOrDefault()?.FormName == "Payment Request Form"
+                    && duplicateDownloads.Count == 0
+            });
+        }
+        finally
+        {
+            formRegistryService.Load(Path.Combine(pathResolver.DataPath, "form-registry.json"));
+        }
+    }
+
+    private string WriteTemporaryRegistry()
+    {
+        Directory.CreateDirectory(pathResolver.TempPath);
+        var registryPath = Path.Combine(pathResolver.TempPath, "verify-form-registry.json");
+        System.IO.File.WriteAllText(registryPath, """
+            [
+              {
+                "form_name": "Payment Request Form",
+                "aliases": ["Payment Request Form", "payment request", "payment form"],
+                "docx_file": "payment-request-template.docx",
+                "download_path": "/templates/payment-request-template.docx",
+                "agent": "ELCA_GENERAL"
+              }
+            ]
+            """);
+
+        return registryPath;
     }
 }
 
