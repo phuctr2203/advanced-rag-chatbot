@@ -6,4 +6,5 @@ public interface IVectorStoreService
 {
     Task UpsertAsync(IReadOnlyList<ParsedChunk> chunks, IReadOnlyList<float[]> vectors, CancellationToken ct = default);
     Task<IReadOnlyList<ScoredChunk>> SearchAsync(float[] vector, string? agent, int limit, CancellationToken ct = default);
+    Task<IReadOnlyList<ScoredChunk>> SearchAsync(string query, int limit = 6, CancellationToken ct = default);
 }

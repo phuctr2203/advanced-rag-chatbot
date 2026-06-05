@@ -75,9 +75,43 @@ public class VerificationController(
             response
         });
     }
+
+    [HttpPost("vector-search")]
+    public async Task<IActionResult> VerifyVectorSearch([FromBody] VectorSearchVerificationRequest request, CancellationToken ct)
+    {
+        var limit = request.Limit is > 0 and <= 20 ? request.Limit : 6;
+        var results = await vectorStoreService.SearchAsync(request.Query, limit, ct);
+
+        return Ok(new
+        {
+            count = results.Count,
+            passed = results.Count > 0 && results.Count <= limit,
+            results = results.Select(result => new
+            {
+                score = result.Score,
+                text = result.Chunk.Text,
+                sourceFile = result.Chunk.SourceFile,
+                pageNumber = result.Chunk.PageNumber,
+                chunkIndex = result.Chunk.ChunkIndex,
+                chunkType = result.Chunk.ChunkType,
+                fileType = result.Chunk.FileType,
+                agent = result.Chunk.Agent,
+                imagePath = result.Chunk.ImagePath,
+                imagePaths = result.Chunk.ImagePaths,
+                isFormTemplate = result.Chunk.IsFormTemplate,
+                templatePath = result.Chunk.TemplatePath
+            })
+        });
+    }
 }
 
 public class QueryIntentVerificationRequest
 {
     public string Message { get; set; } = string.Empty;
+}
+
+public class VectorSearchVerificationRequest
+{
+    public string Query { get; set; } = string.Empty;
+    public int Limit { get; set; } = 6;
 }
