@@ -69,3 +69,5 @@ Thumbs.db
 desktop.ini
 
 artifacts/
+data/form-registry.json
+real_data/

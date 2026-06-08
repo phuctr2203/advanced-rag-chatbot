@@ -33,14 +33,6 @@ public class HealthController(
         });
     }
 
-    [HttpPost("vector-store")]
-    public async Task<IActionResult> VerifyVectorStore(CancellationToken ct)
-    {
-        var embeddings = await embeddingProvider.EmbedAsync(["Annual leave policy verification chunk."], ct);
-        var success = await vectorStoreService.VerifyRoundTripAsync(embeddings[0], ct);
-        return Ok(new { success });
-    }
-
     [HttpPost("llm")]
     public async Task<IActionResult> VerifyLlm(CancellationToken ct)
     {

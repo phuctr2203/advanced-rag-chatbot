@@ -6,13 +6,35 @@ public class UploadedDocumentStorageService(ConfiguredPathResolver pathResolver)
 {
     public async Task<StoredDocument> SaveAsync(IFormFile file, CancellationToken ct)
     {
+        var safeFileName = SanitizeFileName(Path.GetFileName(file.FileName));
         var uploadRoot = pathResolver.UploadedDocumentsPath;
         var dateSegment = DateTime.UtcNow.ToString("yyyyMMdd");
         var targetDirectory = Path.Combine(uploadRoot, dateSegment);
         Directory.CreateDirectory(targetDirectory);
 
-        var safeFileName = SanitizeFileName(Path.GetFileName(file.FileName));
         await using var inputStream = file.OpenReadStream();
+        return await SaveStreamAsync(inputStream, safeFileName, targetDirectory, dateSegment, ct);
+    }
+
+    public async Task<StoredDocument> SaveAsync(string filePath, CancellationToken ct)
+    {
+        var safeFileName = SanitizeFileName(Path.GetFileName(filePath));
+        var uploadRoot = pathResolver.UploadedDocumentsPath;
+        var dateSegment = DateTime.UtcNow.ToString("yyyyMMdd");
+        var targetDirectory = Path.Combine(uploadRoot, dateSegment);
+        Directory.CreateDirectory(targetDirectory);
+
+        await using var inputStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return await SaveStreamAsync(inputStream, safeFileName, targetDirectory, dateSegment, ct);
+    }
+
+    private static async Task<StoredDocument> SaveStreamAsync(
+        Stream inputStream,
+        string safeFileName,
+        string targetDirectory,
+        string dateSegment,
+        CancellationToken ct)
+    {
         var hashBytes = await SHA256.HashDataAsync(inputStream, ct);
         var sha256 = Convert.ToHexString(hashBytes).ToLowerInvariant();
         var storedFileName = $"{sha256[..16]}_{safeFileName}";

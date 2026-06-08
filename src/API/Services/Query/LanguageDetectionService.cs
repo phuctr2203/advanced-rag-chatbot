@@ -14,18 +14,6 @@ public class LanguageDetectionService(ILlmProvider llmProvider, ILogger<Language
 {
     private static readonly HashSet<string> SupportedLanguages = ["en", "vi", "fr", "de"];
 
-    private static readonly Dictionary<string, string> Iso6392ToIso6391 = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["eng"] = "en",
-        ["vie"] = "vi",
-        ["fra"] = "fr",
-        ["fre"] = "fr",
-        ["deu"] = "de",
-        ["ger"] = "de"
-    };
-
-    private readonly RankedLanguageIdentifier? _identifier = LoadIdentifier(logger);
-
     public async Task<LanguageDetectionResult> DetectAsync(string message, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -39,21 +27,13 @@ public class LanguageDetectionService(ILlmProvider llmProvider, ILogger<Language
             return deterministic;
         }
 
-        var candidate = DetectWithNTextCat(message);
-        if (candidate.Confidence >= 0.75f)
-        {
-            return candidate;
-        }
-
         var llmResult = await DetectWithLlmAsync(message, ct);
         if (llmResult is not null)
         {
             return llmResult;
         }
 
-        return SupportedLanguages.Contains(candidate.Language)
-            ? candidate
-            : Result("en", "default", 0.1f);
+        return Result("en", "default", 0.1f);
     }
 
     private static LanguageDetectionResult? DetectDeterministic(string message)
@@ -108,36 +88,6 @@ public class LanguageDetectionService(ILlmProvider llmProvider, ILogger<Language
         return null;
     }
 
-    private LanguageDetectionResult DetectWithNTextCat(string message)
-    {
-        if (_identifier is null)
-        {
-            return Result("en", "default", 0.1f);
-        }
-
-        try
-        {
-            var detected = _identifier
-                .Identify(message)
-                .Select(candidate => candidate.Item1.Iso639_2T)
-                .Select(code => Iso6392ToIso6391.GetValueOrDefault(code, string.Empty))
-                .FirstOrDefault(code => SupportedLanguages.Contains(code));
-
-            if (string.IsNullOrWhiteSpace(detected))
-            {
-                return Result("en", "default", 0.1f);
-            }
-
-            var confidence = message.Trim().Length < 24 ? 0.55f : 0.7f;
-            return Result(detected, "ntextcat", confidence);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Language detection failed. Defaulting to English.");
-            return Result("en", "default", 0.1f);
-        }
-    }
-
     private async Task<LanguageDetectionResult?> DetectWithLlmAsync(string message, CancellationToken ct)
     {
         var prompt = $"""
@@ -149,6 +99,8 @@ public class LanguageDetectionService(ILlmProvider llmProvider, ILogger<Language
             - de: German
 
             Respond with ONLY one code: en, vi, fr, or de.
+
+            If none of the supported languages can be confidently detected, respond with "na".
 
             User message: {message}
             """;
@@ -166,46 +118,6 @@ public class LanguageDetectionService(ILlmProvider llmProvider, ILogger<Language
             logger.LogWarning(ex, "LLM language detection fallback failed.");
             return null;
         }
-    }
-
-    private static RankedLanguageIdentifier? LoadIdentifier(ILogger logger)
-    {
-        var profilePath = FindProfilePath();
-        if (profilePath is null)
-        {
-            logger.LogWarning("NTextCat Core14.profile.xml was not found. Language detection will use deterministic and LLM fallback only.");
-            return null;
-        }
-
-        try
-        {
-            var factory = new RankedLanguageIdentifierFactory();
-            return factory.Load(profilePath, model => Iso6392ToIso6391.ContainsKey(model.Language.Iso639_2T));
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to load NTextCat language profile from {ProfilePath}.", profilePath);
-            return null;
-        }
-    }
-
-    private static string? FindProfilePath()
-    {
-        var candidates = new[]
-        {
-            Path.Combine(AppContext.BaseDirectory, "Core14.profile.xml"),
-            Path.Combine(Directory.GetCurrentDirectory(), "Core14.profile.xml"),
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".nuget",
-                "packages",
-                "ntextcat",
-                "0.3.65",
-                "content",
-                "Core14.profile.xml")
-        };
-
-        return candidates.FirstOrDefault(File.Exists);
     }
 
     private static bool ContainsAny(string value, IReadOnlyList<string> terms)
