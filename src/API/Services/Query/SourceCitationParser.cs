@@ -1,9 +1,12 @@
 using System.Text.RegularExpressions;
 using PolicyBot.Api.Models;
+using PolicyBot.Api.Services.Shared;
 
 namespace PolicyBot.Api.Services.Query;
 
-public partial class SourceCitationParser(FormRegistryService formRegistry)
+public partial class SourceCitationParser(
+    FormRegistryService formRegistry,
+    DocumentDownloadResolver documentDownloadResolver)
 {
     public List<SourceRef> Parse(string response, IReadOnlyList<ScoredChunk> searchResults)
     {
@@ -25,7 +28,12 @@ public partial class SourceCitationParser(FormRegistryService formRegistry)
                 var result = FindMatchingResult(searchResults, file, page);
                 if (result is null)
                 {
-                    sources.Add(new SourceRef { File = file, Page = page });
+                    sources.Add(new SourceRef
+                    {
+                        File = file,
+                        DownloadPath = documentDownloadResolver.Resolve(file),
+                        Page = page
+                    });
                     continue;
                 }
 
@@ -33,6 +41,7 @@ public partial class SourceCitationParser(FormRegistryService formRegistry)
                 sources.Add(new SourceRef
                 {
                     File = chunk.SourceFile,
+                    DownloadPath = documentDownloadResolver.Resolve(chunk.SourceFile),
                     Page = chunk.PageNumber,
                     ChunkType = chunk.ChunkType,
                     ImagePath = chunk.ChunkType.Equals("image_caption", StringComparison.OrdinalIgnoreCase)

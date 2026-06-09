@@ -1,5 +1,6 @@
 export type SourceRef = {
   file: string;
+  downloadPath?: string;
   page: number;
   chunkType?: string;
   imagePath?: string;
@@ -59,6 +60,7 @@ export type AgentValue = '' | 'ELCA_HR' | 'ELCA_GENERAL' | 'CII_TOWER_SUPPORT';
 
 export type DocumentSummary = {
   sourceFile: string;
+  downloadPath?: string;
   agent: string;
   fileType: string;
   chunkCount: number;

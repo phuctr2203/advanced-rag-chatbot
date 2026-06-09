@@ -53,8 +53,8 @@ public class HybridSearchService(
         IReadOnlyList<ScoredChunk> keyword,
         int limit)
     {
-        var denseByKey = dense.ToDictionary(result => GetKey(result.Chunk), StringComparer.OrdinalIgnoreCase);
-        var keywordByKey = keyword.ToDictionary(result => GetKey(result.Chunk), StringComparer.OrdinalIgnoreCase);
+        var denseByKey = ToBestResultByKey(dense);
+        var keywordByKey = ToBestResultByKey(keyword);
         var maxDense = Math.Max(dense.Count == 0 ? 0 : dense.Max(result => result.Score), 0.0001f);
         var maxKeyword = Math.Max(keyword.Count == 0 ? 0 : keyword.Max(result => result.Score), 0.0001f);
         var useExactWeights = keywordSearchService.HasExactMatchSignals(query);
@@ -89,6 +89,16 @@ public class HybridSearchService(
     private static string GetKey(ParsedChunk chunk)
     {
         return $"{chunk.SourceFile}|{chunk.PageNumber}|{chunk.ChunkIndex}|{chunk.ChunkType}";
+    }
+
+    private static Dictionary<string, ScoredChunk> ToBestResultByKey(IReadOnlyList<ScoredChunk> results)
+    {
+        return results
+            .GroupBy(result => GetKey(result.Chunk), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.OrderByDescending(result => result.Score).First(),
+                StringComparer.OrdinalIgnoreCase);
     }
 
 }

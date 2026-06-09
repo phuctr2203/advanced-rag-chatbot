@@ -484,10 +484,7 @@ function SourcesPanel({
             const imagePaths = source.imagePaths?.length ? source.imagePaths : source.imagePath ? [source.imagePath] : [];
             return (
               <div className="source-item" key={`${source.file}-${source.page}-${index}`}>
-                <div className="source-chip">
-                  <FileText size={14} aria-hidden="true" />
-                  <span>{source.file} - Page {source.page}</span>
-                </div>
+                <SourceChip source={source} />
                 {source.formDownload && <DownloadLink download={source.formDownload} />}
                 {imagePaths.length > 0 && (
                   <div className="source-images">
@@ -511,6 +508,25 @@ function SourcesPanel({
       )}
     </div>
   );
+}
+
+function SourceChip({ source }: { source: SourceRef }) {
+  const content = (
+    <>
+      <FileText size={14} aria-hidden="true" />
+      <span>{source.file} - Page {source.page}</span>
+    </>
+  );
+
+  if (source.downloadPath) {
+    return (
+      <a className="source-chip source-link" href={source.downloadPath} target="_blank" rel="noreferrer">
+        {content}
+      </a>
+    );
+  }
+
+  return <div className="source-chip">{content}</div>;
 }
 
 function DownloadLink({ download }: { download: FormDownloadRef }) {
@@ -890,10 +906,17 @@ function DocumentLibrary({
           {documents.map((document) => (
             <tr key={document.sourceFile}>
               <td>
-                <div className="document-name">
-                  <FileText size={15} aria-hidden="true" />
-                  <span title={document.sourceFile}>{document.sourceFile}</span>
-                </div>
+                {document.downloadPath ? (
+                  <a className="document-name document-link" href={document.downloadPath} target="_blank" rel="noreferrer">
+                    <FileText size={15} aria-hidden="true" />
+                    <span title={document.sourceFile}>{document.sourceFile}</span>
+                  </a>
+                ) : (
+                  <div className="document-name">
+                    <FileText size={15} aria-hidden="true" />
+                    <span title={document.sourceFile}>{document.sourceFile}</span>
+                  </div>
+                )}
               </td>
               <td>{document.fileType || 'Unknown'}</td>
               <td>{document.chunkCount}</td>

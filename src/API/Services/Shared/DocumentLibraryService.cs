@@ -2,7 +2,9 @@ using PolicyBot.Api.Models;
 
 namespace PolicyBot.Api.Services.Shared;
 
-public class DocumentLibraryService(IVectorStoreService vectorStoreService)
+public class DocumentLibraryService(
+    IVectorStoreService vectorStoreService,
+    DocumentDownloadResolver documentDownloadResolver)
 {
     public async Task<IReadOnlyList<DocumentSummary>> ListAsync(CancellationToken ct = default)
     {
@@ -17,6 +19,7 @@ public class DocumentLibraryService(IVectorStoreService vectorStoreService)
                 return new DocumentSummary
                 {
                     SourceFile = group.Key,
+                    DownloadPath = documentDownloadResolver.Resolve(group.Key),
                     Agent = first.Agent,
                     FileType = first.FileType,
                     ChunkCount = group.Count(),

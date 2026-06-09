@@ -386,6 +386,16 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.source-link {
+  text-decoration: none;
+}
+
+.source-link:hover {
+  color: #108664;
+  border-color: #1aa37a;
+  background: #f7fffc;
+}
+
 .download-link {
   color: #108664;
   text-decoration: none;
@@ -889,6 +899,16 @@ select:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.document-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.document-link:hover span {
+  color: #108664;
+  text-decoration: underline;
 }
 
 .suggestion-groups,

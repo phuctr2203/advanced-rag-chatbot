@@ -8,6 +8,7 @@ public static class VectorServiceCollectionExtensions
     {
         services.AddSingleton<VectorStoreService>();
         services.AddSingleton<IVectorStoreService>(serviceProvider => serviceProvider.GetRequiredService<VectorStoreService>());
+        services.AddScoped<DocumentDownloadResolver>();
         services.AddScoped<DocumentLibraryService>();
 
         return services;
