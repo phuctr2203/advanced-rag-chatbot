@@ -200,10 +200,59 @@ h3 {
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
 }
 
+.prompt-suggestions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.prompt-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  min-height: 74px;
+  padding: 12px;
+  border: 1px solid #d7dee8;
+  border-radius: 8px;
+  color: #334155;
+  background: #ffffff;
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.prompt-suggestion:hover:not(:disabled) {
+  border-color: #93b4ef;
+  background: #f8fbff;
+}
+
+.prompt-suggestion svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #2563eb;
+}
+
+.prompt-suggestion span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.prompt-suggestion strong {
+  color: #111827;
+  font-size: 13px;
+}
+
+.prompt-suggestion small {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .chat-panel {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
-  min-height: calc(100vh - 126px);
+  min-height: calc(100vh - 218px);
   overflow: hidden;
 }
 
@@ -404,11 +453,30 @@ select:focus {
   border-color: #fecaca;
 }
 
+.icon-button.danger {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
 .documents-grid {
   display: grid;
   grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
+}
+
+.upload-panel,
+.system-panel {
+  grid-column: 1;
+}
+
+.library-panel {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.review-panel {
+  grid-column: 1 / -1;
 }
 
 .panel {
@@ -418,6 +486,16 @@ select:focus {
 }
 
 .panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.split-heading {
+  justify-content: space-between;
+}
+
+.split-heading > div {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -499,6 +577,136 @@ select:focus {
 .empty-state.small {
   min-height: 32px;
   padding: 7px 9px;
+}
+
+.provider-summary {
+  display: grid;
+  gap: 13px;
+}
+
+.provider-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.provider-grid div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.provider-grid span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.provider-grid strong {
+  color: #111827;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.status-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.status-chip.healthy {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.status-chip.unhealthy {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.status-chip.pending {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.status-chip .status-dot {
+  width: 7px;
+  height: 7px;
+  box-shadow: none;
+}
+
+.status-chip.unhealthy .status-dot {
+  background: #dc2626;
+}
+
+.status-chip.pending .status-dot {
+  background: #64748b;
+}
+
+.compact-button {
+  width: fit-content;
+}
+
+.document-table-wrap {
+  overflow-x: auto;
+}
+
+.document-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.document-table th,
+.document-table td {
+  padding: 10px 9px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.document-table th {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.document-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.document-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 260px;
+  max-width: 420px;
+}
+
+.document-name svg {
+  flex: 0 0 auto;
+  color: #2563eb;
+}
+
+.document-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .suggestion-groups,
@@ -686,8 +894,16 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
+  .upload-panel,
+  .system-panel,
+  .library-panel,
+  .review-panel {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
   .chat-panel {
-    min-height: calc(100vh - 144px);
+    min-height: calc(100vh - 236px);
   }
 }
 
@@ -700,6 +916,14 @@ select:focus {
 
   h1 {
     font-size: 25px;
+  }
+
+  .prompt-suggestions {
+    grid-template-columns: 1fr;
+  }
+
+  .prompt-suggestion {
+    min-height: 64px;
   }
 
   .message-stack {

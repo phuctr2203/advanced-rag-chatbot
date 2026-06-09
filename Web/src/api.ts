@@ -1,7 +1,10 @@
 import type {
   AgentValue,
+  CurrentProviderResponse,
+  DocumentSummary,
   FormMappingSuggestion,
   IngestResponse,
+  ProviderStatusResponse,
   SourcesPayload,
 } from './types';
 
@@ -76,6 +79,46 @@ export async function fetchSuggestions() {
 
   const data = (await response.json()) as unknown[];
   return data.map(normalizeSuggestion);
+}
+
+export async function fetchDocuments() {
+  const response = await fetch('/api/documents');
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  return (await response.json()) as DocumentSummary[];
+}
+
+export async function deleteDocument(sourceFile: string) {
+  const response = await fetch(`/api/documents/${encodeURIComponent(sourceFile)}`, {
+    method: 'DELETE',
+  });
+  const payload = await response.json();
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Document deletion failed.');
+  }
+
+  return payload as { sourceFile: string; deletedChunks: number };
+}
+
+export async function fetchCurrentProvider() {
+  const response = await fetch('/api/providers/current');
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  return (await response.json()) as CurrentProviderResponse;
+}
+
+export async function fetchProviderStatus() {
+  const response = await fetch('/api/providers/status');
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  return (await response.json()) as ProviderStatusResponse;
 }
 
 export async function acceptSuggestion(id: string) {

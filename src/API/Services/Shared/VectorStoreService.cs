@@ -136,6 +136,61 @@ public class VectorStoreService(IOptions<QdrantOptions> options, IEmbeddingProvi
         return chunks;
     }
 
+    public async Task<IReadOnlyList<ParsedChunk>> ListAllChunksAsync(CancellationToken ct = default)
+    {
+        await EnsureCollectionAsync(ct);
+
+        var chunks = new List<ParsedChunk>();
+        PointId? offset = null;
+
+        do
+        {
+            var response = await _client.ScrollAsync(
+                _options.CollectionName,
+                limit: 256,
+                offset: offset,
+                payloadSelector: true,
+                vectorsSelector: false,
+                cancellationToken: ct);
+
+            chunks.AddRange(response.Result.Select(point => FromPayload(point.Payload)));
+            offset = response.NextPageOffset;
+        }
+        while (offset is not null);
+
+        return chunks;
+    }
+
+    public async Task<int> DeleteBySourceFileAsync(string sourceFile, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sourceFile))
+        {
+            return 0;
+        }
+
+        await EnsureCollectionAsync(ct);
+
+        var filter = SourceFileFilter(sourceFile);
+        var count = await _client.CountAsync(
+            _options.CollectionName,
+            filter,
+            exact: true,
+            cancellationToken: ct);
+
+        if (count == 0)
+        {
+            return 0;
+        }
+
+        await _client.DeleteAsync(_options.CollectionName, filter, wait: true, cancellationToken: ct);
+        return (int)Math.Min(count, int.MaxValue);
+    }
+
+    public async Task CheckHealthAsync(CancellationToken ct = default)
+    {
+        await _client.HealthAsync(ct);
+    }
+
     public async Task<bool> VerifyRoundTripAsync(float[] vector, CancellationToken ct = default)
     {
         var chunk = new ParsedChunk
@@ -209,5 +264,23 @@ public class VectorStoreService(IOptions<QdrantOptions> options, IEmbeddingProvi
     private static bool GetBoolean(IDictionary<string, Value> payload, string key)
     {
         return payload.TryGetValue(key, out var value) && value.BoolValue;
+    }
+
+    private static Filter SourceFileFilter(string sourceFile)
+    {
+        return new Filter
+        {
+            Must =
+            {
+                new Condition
+                {
+                    Field = new FieldCondition
+                    {
+                        Key = "source_file",
+                        Match = new Match { Keyword = sourceFile }
+                    }
+                }
+            }
+        };
     }
 }

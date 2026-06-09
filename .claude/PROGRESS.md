@@ -100,6 +100,12 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 4.6 Document upload UI with optional agent selector
 - [x] 4.7 Form mapping suggestion review UI with Accept / Reject / Choose another
 
+## Enhancement Phase 1 — Retrieval UX, language robustness, and system visibility
+
+- [x] E1.3 Documents library — backend Qdrant document listing + frontend library view
+- [x] E1.4 Provider/model display only — show current configured provider and model in UI
+- [x] E1.5 Provider status display only — show LLM, embedding, and Qdrant health
+
 ## Phase 5 — Polish & demo prep
 
 - [ ] 5.1 Error handling for service and parsing failures
@@ -154,4 +160,5 @@ Start only after Phase 5 is complete.
 - 2026-06-09: Updated RAG answer generation to stream with LLM temperature `0.1` from `ChatOrchestrator` while leaving classifier/completion calls unchanged. Verified with `dotnet build src\API\PolicyBot.Api.csproj`.
 - 2026-06-09: Implemented Phase 4 frontend in `Web/` following the Figma Make two-page structure: Chat and Documents navigation, streaming chat UI, source/image/form-download rendering, document upload with agent selector, and form mapping suggestion review actions. Verified `npm.cmd run build` and Vite dev server HTTP `200` on `http://127.0.0.1:5173`; in-app browser verification was unavailable because the `iab` browser surface was not present.
 - 2026-06-09: Verified Phase 4 frontend end-to-end on this workspace using Vite `http://127.0.0.1:5174` and API `http://127.0.0.1:5000` with `LlmProvider__Active=Ollama`. Fixed SSE parsing in `Web/src/api.ts` so CRLF-delimited `[SOURCES]` events are handled separately instead of leaking into assistant text. Rebuilt with `npm.cmd run build`. Browser-verified chat history + streaming greeting, grounded CII Tower answer with source chips and image rendering, upload endpoint success with manual `ELCA_HR` selection (`chunks: 48`), and form mapping review groups/actions (Accept, Reject, Choose another) with confidence scores.
+- 2026-06-09: Implemented and verified Enhancement Phase 1 tasks E1.3-E1.5. Added `GET /api/documents`, `DELETE /api/documents/{sourceFile}`, `GET /api/providers/current`, and `GET /api/providers/status`, plus the Documents page indexed-library table, delete controls, provider/model display, and service status chips. Verified `dotnet build src\API\PolicyBot.Api.csproj`, `npm.cmd run build`, provider current/status endpoints with Ollama/TEI/Qdrant healthy, Qdrant document summaries, disposable XLSX ingest appearing in the library (`48` chunks, `24` pages, `hasFormTemplate: true`), delete removing exactly `48` chunks and the row, and browser-rendered Documents UI with provider values, healthy chips, 45 indexed rows, table headers, and document-specific delete buttons.
  

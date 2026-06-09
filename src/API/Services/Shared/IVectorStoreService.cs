@@ -8,4 +8,7 @@ public interface IVectorStoreService
     Task<IReadOnlyList<ScoredChunk>> SearchAsync(float[] vector, string? agent, int limit, CancellationToken ct = default);
     Task<IReadOnlyList<ScoredChunk>> SearchAsync(string query, int limit = 6, CancellationToken ct = default);
     Task<IReadOnlyList<ParsedChunk>> ListChunksAsync(int limit = 2048, CancellationToken ct = default);
+    Task<IReadOnlyList<ParsedChunk>> ListAllChunksAsync(CancellationToken ct = default);
+    Task<int> DeleteBySourceFileAsync(string sourceFile, CancellationToken ct = default);
+    Task CheckHealthAsync(CancellationToken ct = default);
 }

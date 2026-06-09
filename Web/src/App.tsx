@@ -1,15 +1,21 @@
 import {
   AlertCircle,
+  Activity,
   Bot,
+  Building2,
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronRight,
+  CreditCard,
+  Database,
   FileText,
   FolderOpen,
   Loader2,
   MessageSquareText,
   RefreshCw,
   Send,
+  Trash2,
   Upload,
   X,
 } from 'lucide-react';
@@ -17,6 +23,10 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   acceptSuggestion,
   chooseSuggestionTemplate,
+  deleteDocument,
+  fetchCurrentProvider,
+  fetchDocuments,
+  fetchProviderStatus,
   fetchSuggestions,
   rejectSuggestion,
   streamChat,
@@ -25,9 +35,13 @@ import {
 import type {
   AgentValue,
   ChatMessage,
+  CurrentProviderResponse,
+  DocumentSummary,
   FormDownloadRef,
   FormMappingSuggestion,
   IngestResponse,
+  ProviderStatusResponse,
+  ServiceStatus,
   SourceRef,
 } from './types';
 
@@ -48,11 +62,35 @@ const starterMessages: ChatMessage[] = [
   },
 ];
 
+const chatPromptSuggestions = [
+  {
+    label: 'Payment',
+    question: 'How do I submit a payment request and where can I download the form?',
+    icon: CreditCard,
+  },
+  {
+    label: 'Annual leave',
+    question: 'How many additional annual leave days do I get based on seniority?',
+    icon: CalendarDays,
+  },
+  {
+    label: 'CII Tower',
+    question: 'What should I know about CII Tower support and building rules?',
+    icon: Building2,
+  },
+];
+
 export default function App() {
   const [page, setPage] = useState<Page>('chat');
   const [suggestions, setSuggestions] = useState<FormMappingSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionsError, setSuggestionsError] = useState('');
+  const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsError, setDocumentsError] = useState('');
+  const [provider, setProvider] = useState<CurrentProviderResponse | null>(null);
+  const [providerStatus, setProviderStatus] = useState<ProviderStatusResponse | null>(null);
+  const [providerError, setProviderError] = useState('');
 
   const loadSuggestions = async () => {
     setSuggestionsLoading(true);
@@ -66,8 +104,33 @@ export default function App() {
     }
   };
 
+  const loadDocuments = async () => {
+    setDocumentsLoading(true);
+    setDocumentsError('');
+    try {
+      setDocuments(await fetchDocuments());
+    } catch (error) {
+      setDocumentsError(error instanceof Error ? error.message : 'Could not load documents.');
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+
+  const loadProviderInfo = async () => {
+    setProviderError('');
+    try {
+      const [current, status] = await Promise.all([fetchCurrentProvider(), fetchProviderStatus()]);
+      setProvider(current);
+      setProviderStatus(status);
+    } catch (error) {
+      setProviderError(error instanceof Error ? error.message : 'Could not load provider status.');
+    }
+  };
+
   useEffect(() => {
     void loadSuggestions();
+    void loadDocuments();
+    void loadProviderInfo();
   }, []);
 
   return (
@@ -110,6 +173,15 @@ export default function App() {
             reloadSuggestions={loadSuggestions}
             suggestionsLoading={suggestionsLoading}
             suggestionsError={suggestionsError}
+            documents={documents}
+            setDocuments={setDocuments}
+            reloadDocuments={loadDocuments}
+            documentsLoading={documentsLoading}
+            documentsError={documentsError}
+            provider={provider}
+            providerStatus={providerStatus}
+            providerError={providerError}
+            reloadProviderInfo={loadProviderInfo}
           />
         )}
       </main>
@@ -130,10 +202,9 @@ function ChatPage() {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, waitingForFirstToken]);
 
-  const sendMessage = async (event: FormEvent) => {
-    event.preventDefault();
-    const text = input.trim();
-    if (!text || isStreaming) {
+  const submitMessage = async (text: string) => {
+    const trimmedText = text.trim();
+    if (!trimmedText || isStreaming) {
       return;
     }
 
@@ -146,13 +217,13 @@ function ChatPage() {
     setWaitingForFirstToken(true);
     setMessages((current) => [
       ...current,
-      { id: crypto.randomUUID(), role: 'user', content: text },
+      { id: crypto.randomUUID(), role: 'user', content: trimmedText },
       { id: assistantId, role: 'assistant', content: '' },
     ]);
 
     try {
       await streamChat(
-        text,
+        trimmedText,
         {
           onToken: (token) => {
             setWaitingForFirstToken(false);
@@ -197,6 +268,11 @@ function ChatPage() {
     }
   };
 
+  const sendMessage = async (event: FormEvent) => {
+    event.preventDefault();
+    await submitMessage(input);
+  };
+
   const stopStreaming = () => {
     abortRef.current?.abort();
     setIsStreaming(false);
@@ -214,6 +290,24 @@ function ChatPage() {
           <span className="status-dot" />
           Streaming answers
         </div>
+      </div>
+
+      <div className="prompt-suggestions" aria-label="Suggested questions">
+        {chatPromptSuggestions.map(({ label, question, icon: Icon }) => (
+          <button
+            key={label}
+            type="button"
+            className="prompt-suggestion"
+            onClick={() => void submitMessage(question)}
+            disabled={isStreaming}
+          >
+            <Icon size={17} aria-hidden="true" />
+            <span>
+              <strong>{label}</strong>
+              <small>{question}</small>
+            </span>
+          </button>
+        ))}
       </div>
 
       <div className="chat-panel">
@@ -349,18 +443,37 @@ function DocumentsPage({
   reloadSuggestions,
   suggestionsLoading,
   suggestionsError,
+  documents,
+  setDocuments,
+  reloadDocuments,
+  documentsLoading,
+  documentsError,
+  provider,
+  providerStatus,
+  providerError,
+  reloadProviderInfo,
 }: {
   suggestions: FormMappingSuggestion[];
   setSuggestions: (suggestions: FormMappingSuggestion[]) => void;
   reloadSuggestions: () => Promise<void>;
   suggestionsLoading: boolean;
   suggestionsError: string;
+  documents: DocumentSummary[];
+  setDocuments: (documents: DocumentSummary[]) => void;
+  reloadDocuments: () => Promise<void>;
+  documentsLoading: boolean;
+  documentsError: string;
+  provider: CurrentProviderResponse | null;
+  providerStatus: ProviderStatusResponse | null;
+  providerError: string;
+  reloadProviderInfo: () => Promise<void>;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [agent, setAgent] = useState<AgentValue>('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploadResult, setUploadResult] = useState<IngestResponse | null>(null);
+  const [deletingDocument, setDeletingDocument] = useState('');
 
   const handleUpload = async (event: FormEvent) => {
     event.preventDefault();
@@ -379,6 +492,8 @@ function DocumentsPage({
       } else {
         await reloadSuggestions();
       }
+      await reloadDocuments();
+      await reloadProviderInfo();
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : 'Upload failed.');
     } finally {
@@ -388,6 +503,23 @@ function DocumentsPage({
 
   const upsertSuggestion = (updated: FormMappingSuggestion) => {
     setSuggestions(suggestions.map((suggestion) => (suggestion.id === updated.id ? updated : suggestion)));
+  };
+
+  const handleDeleteDocument = async (sourceFile: string) => {
+    if (!window.confirm(`Remove all indexed chunks for "${sourceFile}"?`)) {
+      return;
+    }
+
+    setDeletingDocument(sourceFile);
+    setUploadError('');
+    try {
+      await deleteDocument(sourceFile);
+      setDocuments(documents.filter((document) => document.sourceFile !== sourceFile));
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Document deletion failed.');
+    } finally {
+      setDeletingDocument('');
+    }
   };
 
   return (
@@ -453,6 +585,35 @@ function DocumentsPage({
           )}
         </section>
 
+        <section className="panel system-panel">
+          <div className="panel-heading">
+            <Activity size={18} aria-hidden="true" />
+            <h2>System status</h2>
+          </div>
+          {providerError && <ErrorBanner message={providerError} />}
+          <ProviderSummary provider={provider} status={providerStatus} onRefresh={reloadProviderInfo} />
+        </section>
+
+        <section className="panel library-panel">
+          <div className="panel-heading split-heading">
+            <div>
+              <Database size={18} aria-hidden="true" />
+              <h2>Indexed documents</h2>
+            </div>
+            <button className="secondary-button" onClick={() => void reloadDocuments()} disabled={documentsLoading}>
+              <RefreshCw size={16} className={documentsLoading ? 'spin' : ''} aria-hidden="true" />
+              Refresh
+            </button>
+          </div>
+          {documentsError && <ErrorBanner message={documentsError} />}
+          <DocumentLibrary
+            documents={documents}
+            loading={documentsLoading}
+            deletingDocument={deletingDocument}
+            onDelete={handleDeleteDocument}
+          />
+        </section>
+
         <section className="panel review-panel">
           <div className="panel-heading">
             <FileText size={18} aria-hidden="true" />
@@ -472,6 +633,136 @@ function DocumentsPage({
         </section>
       </div>
     </section>
+  );
+}
+
+function ProviderSummary({
+  provider,
+  status,
+  onRefresh,
+}: {
+  provider: CurrentProviderResponse | null;
+  status: ProviderStatusResponse | null;
+  onRefresh: () => Promise<void>;
+}) {
+  const statuses = status ? [status.llm, status.embedding, status.qdrant] : [];
+
+  return (
+    <div className="provider-summary">
+      <div className="provider-grid">
+        <div>
+          <span>LLM</span>
+          <strong>{provider ? `${provider.llmProvider} / ${provider.llmModel || 'No model'}` : 'Loading'}</strong>
+        </div>
+        <div>
+          <span>Vision</span>
+          <strong>{provider ? `${provider.visionProvider} / ${provider.visionModel || 'No model'}` : 'Loading'}</strong>
+        </div>
+        <div>
+          <span>Embedding</span>
+          <strong>{provider ? `${provider.embeddingProvider} / ${provider.embeddingBaseUrl}` : 'Loading'}</strong>
+        </div>
+      </div>
+
+      <div className="status-chip-row">
+        {statuses.length === 0 ? (
+          <span className="status-chip pending">Checking services</span>
+        ) : (
+          statuses.map((item) => <StatusChip key={item.name} status={item} />)
+        )}
+      </div>
+
+      <button className="secondary-button compact-button" onClick={() => void onRefresh()}>
+        <RefreshCw size={15} aria-hidden="true" />
+        Refresh status
+      </button>
+    </div>
+  );
+}
+
+function StatusChip({ status }: { status: ServiceStatus }) {
+  return (
+    <span className={status.healthy ? 'status-chip healthy' : 'status-chip unhealthy'} title={status.message}>
+      <span className="status-dot" />
+      {status.name}
+    </span>
+  );
+}
+
+function DocumentLibrary({
+  documents,
+  loading,
+  deletingDocument,
+  onDelete,
+}: {
+  documents: DocumentSummary[];
+  loading: boolean;
+  deletingDocument: string;
+  onDelete: (sourceFile: string) => Promise<void>;
+}) {
+  if (loading && documents.length === 0) {
+    return (
+      <div className="empty-state">
+        <Loader2 size={18} className="spin" aria-hidden="true" />
+        Loading documents
+      </div>
+    );
+  }
+
+  if (documents.length === 0) {
+    return <div className="empty-state">No indexed documents yet.</div>;
+  }
+
+  return (
+    <div className="document-table-wrap">
+      <table className="document-table">
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th>Agent</th>
+            <th>Type</th>
+            <th>Chunks</th>
+            <th>Pages</th>
+            <th>Images</th>
+            <th>Template</th>
+            <th aria-label="Actions" />
+          </tr>
+        </thead>
+        <tbody>
+          {documents.map((document) => (
+            <tr key={document.sourceFile}>
+              <td>
+                <div className="document-name">
+                  <FileText size={15} aria-hidden="true" />
+                  <span title={document.sourceFile}>{document.sourceFile}</span>
+                </div>
+              </td>
+              <td>{document.agent || 'Unknown'}</td>
+              <td>{document.fileType || 'Unknown'}</td>
+              <td>{document.chunkCount}</td>
+              <td>{document.pageCount}</td>
+              <td>{document.hasImages ? 'Yes' : 'No'}</td>
+              <td>{document.hasFormTemplate ? 'Yes' : 'No'}</td>
+              <td>
+                <button
+                  className="icon-button danger"
+                  onClick={() => void onDelete(document.sourceFile)}
+                  disabled={deletingDocument === document.sourceFile}
+                  aria-label={`Delete ${document.sourceFile}`}
+                  title="Delete indexed document"
+                >
+                  {deletingDocument === document.sourceFile ? (
+                    <Loader2 size={16} className="spin" aria-hidden="true" />
+                  ) : (
+                    <Trash2 size={16} aria-hidden="true" />
+                  )}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
