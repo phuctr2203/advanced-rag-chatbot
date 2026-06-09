@@ -9,6 +9,11 @@ public class LlmService(ILlmProvider llmProvider)
         return llmProvider.StreamAsync(prompt, ct);
     }
 
+    public IAsyncEnumerable<string> StreamAsync(string prompt, float temperature, CancellationToken ct = default)
+    {
+        return llmProvider.StreamAsync(prompt, temperature, ct);
+    }
+
     public Task<string> CompleteAsync(string prompt, int maxTokens, CancellationToken ct = default)
     {
         return llmProvider.CompleteAsync(prompt, maxTokens, ct);

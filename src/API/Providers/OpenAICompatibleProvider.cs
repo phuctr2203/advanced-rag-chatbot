@@ -30,8 +30,30 @@ public class OpenAICompatibleProvider(HttpClient httpClient, IOptions<LlmProvide
 
     public async IAsyncEnumerable<string> StreamAsync(string prompt, [EnumeratorCancellation] CancellationToken ct)
     {
+        await foreach (var token in StreamAsync(prompt, temperature: null, ct))
+        {
+            yield return token;
+        }
+    }
+
+    public async IAsyncEnumerable<string> StreamAsync(
+        string prompt,
+        float temperature,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var token in StreamAsync(prompt, (float?)temperature, ct))
+        {
+            yield return token;
+        }
+    }
+
+    private async IAsyncEnumerable<string> StreamAsync(
+        string prompt,
+        float? temperature,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
         var endpoint = GetEndpointOptions();
-        using var request = CreateRequest(endpoint, prompt, maxTokens: null, stream: true);
+        using var request = CreateRequest(endpoint, prompt, maxTokens: null, stream: true, temperature);
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 
@@ -70,7 +92,12 @@ public class OpenAICompatibleProvider(HttpClient httpClient, IOptions<LlmProvide
         }
     }
 
-    private HttpRequestMessage CreateRequest(LlmEndpointOptions endpoint, string prompt, int? maxTokens, bool stream)
+    private HttpRequestMessage CreateRequest(
+        LlmEndpointOptions endpoint,
+        string prompt,
+        int? maxTokens,
+        bool stream,
+        float? temperature = null)
     {
         var uri = new Uri(new Uri(endpoint.BaseUrl.TrimEnd('/') + "/"), "v1/chat/completions");
         var body = new Dictionary<string, object?>
@@ -83,6 +110,11 @@ public class OpenAICompatibleProvider(HttpClient httpClient, IOptions<LlmProvide
         if (maxTokens is not null)
         {
             body["max_tokens"] = maxTokens.Value;
+        }
+
+        if (temperature is not null)
+        {
+            body["temperature"] = temperature.Value;
         }
 
         var request = new HttpRequestMessage(HttpMethod.Post, uri)

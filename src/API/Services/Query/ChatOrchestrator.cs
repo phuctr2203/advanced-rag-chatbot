@@ -14,6 +14,7 @@ public class ChatOrchestrator(
     FormDownloadEnrichmentService formDownloadEnrichmentService)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private const float RagAnswerTemperature = 0.1f;
 
     public async IAsyncEnumerable<string> StreamAsync(
         ChatRequest request,
@@ -47,7 +48,7 @@ public class ChatOrchestrator(
 
         var prompt = promptBuilderService.Build(message, searchResults, language.Language);
         var answerTokens = new List<string>();
-        await foreach (var token in llmService.StreamAsync(prompt, ct))
+        await foreach (var token in llmService.StreamAsync(prompt, RagAnswerTemperature, ct))
         {
             answerTokens.Add(token);
             yield return token;
