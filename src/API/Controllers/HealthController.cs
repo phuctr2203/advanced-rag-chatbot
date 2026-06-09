@@ -9,8 +9,7 @@ namespace PolicyBot.Api.Controllers;
 public class HealthController(
     IEmbeddingProvider embeddingProvider,
     ILlmProvider llmProvider,
-    IVisionProvider visionProvider,
-    VectorStoreService vectorStoreService) : ControllerBase
+    IVisionProvider visionProvider) : ControllerBase
 {
     [HttpGet]
     public IActionResult Get()

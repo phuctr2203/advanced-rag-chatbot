@@ -60,7 +60,7 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 2.2.E3 LLM mapping prompt returns matched form, confidence, reason, and status
 - [x] 2.2.E4 Confidence policy implemented (`recommended`, `needs_manual_review`, unmapped)
 - [x] 2.2.E5 Review API for listing, accepting, rejecting, and choosing suggested mappings
-- [ ] 2.2.E6 UI review flow shows Accept / Reject / Choose another with confidence score
+- [x] 2.2.E6 UI review flow shows Accept / Reject / Choose another with confidence score
 
 > **Chunker strategy chosen:** Provisional default is `ParagraphBoundary`.
 > 
@@ -92,13 +92,13 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 
 ## Phase 4 — Frontend
 
-- [ ] 4.1 React project scaffolded
-- [ ] 4.2 Chat UI with message history
-- [ ] 4.3 SSE streaming rendering
-- [ ] 4.4 Source citation panel
-- [ ] 4.5 Image display alongside citations
-- [ ] 4.6 Document upload UI with optional agent selector
-- [ ] 4.7 Form mapping suggestion review UI with Accept / Reject / Choose another
+- [x] 4.1 React project scaffolded
+- [x] 4.2 Chat UI with message history
+- [x] 4.3 SSE streaming rendering
+- [x] 4.4 Source citation panel
+- [x] 4.5 Image display alongside citations
+- [x] 4.6 Document upload UI with optional agent selector
+- [x] 4.7 Form mapping suggestion review UI with Accept / Reject / Choose another
 
 ## Phase 5 — Polish & demo prep
 
@@ -152,4 +152,6 @@ Start only after Phase 5 is complete.
 - 2026-06-05: Verified Enhancement Phase 3.1 task 3.H6 against 177 Qdrant points. Dense/keyword/hybrid comparison covered semantic annual leave, `SCH-HR-003`, `Payment Request Form`, `GIẤY ĐỀ NGHỊ THANH TOÁN`, `PCCC equipment`, and `Article 4 annual leave`. Added `docs/reports/hybrid-retrieval-comparison.md`. Result: keep `Hybrid` as the default retrieval mode because it preserves semantic recall and recovers exact-code/form/acronym queries that dense search can miss.
 - 2026-06-05: Simplified hybrid retrieval enhancement after choosing hybrid as final behavior. Removed runtime retrieval mode switching and debug-only helper endpoints/classes. Renamed retrieval config to `HybridSearch`; `ChatOrchestrator` now injects `HybridSearchService` directly. Kept dense/keyword outputs only in `/verify/hybrid-search` diagnostics for reporting. Verified `SCH-HR-003` through diagnostics and `/api/chat`.
 - 2026-06-09: Updated RAG answer generation to stream with LLM temperature `0.1` from `ChatOrchestrator` while leaving classifier/completion calls unchanged. Verified with `dotnet build src\API\PolicyBot.Api.csproj`.
+- 2026-06-09: Implemented Phase 4 frontend in `Web/` following the Figma Make two-page structure: Chat and Documents navigation, streaming chat UI, source/image/form-download rendering, document upload with agent selector, and form mapping suggestion review actions. Verified `npm.cmd run build` and Vite dev server HTTP `200` on `http://127.0.0.1:5173`; in-app browser verification was unavailable because the `iab` browser surface was not present.
+- 2026-06-09: Verified Phase 4 frontend end-to-end on this workspace using Vite `http://127.0.0.1:5174` and API `http://127.0.0.1:5000` with `LlmProvider__Active=Ollama`. Fixed SSE parsing in `Web/src/api.ts` so CRLF-delimited `[SOURCES]` events are handled separately instead of leaking into assistant text. Rebuilt with `npm.cmd run build`. Browser-verified chat history + streaming greeting, grounded CII Tower answer with source chips and image rendering, upload endpoint success with manual `ELCA_HR` selection (`chunks: 48`), and form mapping review groups/actions (Accept, Reject, Choose another) with confidence scores.
  
