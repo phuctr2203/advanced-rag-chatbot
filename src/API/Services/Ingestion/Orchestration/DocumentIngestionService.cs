@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using PolicyBot.Api.Models;
 using PolicyBot.Api.Providers;
 using PolicyBot.Api.Services.Ingestion.Chunking;
@@ -27,6 +28,7 @@ public class DocumentIngestionService(
     public async Task<DocumentIngestionResult> IngestAsync(
         StoredDocument document,
         string? requestedAgent,
+        bool forceReIngest = false,
         CancellationToken ct = default)
     {
         if (!string.IsNullOrWhiteSpace(requestedAgent) && !DocumentClassifierService.IsValidAgent(requestedAgent))
@@ -34,6 +36,34 @@ public class DocumentIngestionService(
             throw new ArgumentException(
                 "Invalid agent. Valid values are ELCA_HR, ELCA_GENERAL, CII_TOWER_SUPPORT.",
                 nameof(requestedAgent));
+        }
+
+        var fileHash = ComputeFileHash(document.PhysicalPath);
+        var existingState = await vectorStoreService.GetDocumentIndexStateAsync(document.OriginalFileName, ct);
+        var isUpdate = existingState is not null;
+        if (!forceReIngest
+            && existingState is not null
+            && string.Equals(existingState.FileHash, fileHash, StringComparison.OrdinalIgnoreCase))
+        {
+            var skippedAt = DateTime.UtcNow.ToString("O");
+            logger.LogInformation(
+                "[DocumentIngestion] {FileName} unchanged; skipped re-ingestion.",
+                document.OriginalFileName);
+
+            return new DocumentIngestionResult
+            {
+                FileName = document.OriginalFileName,
+                Agent = string.IsNullOrWhiteSpace(existingState.Agent)
+                    ? DocumentClassifierService.DefaultAgent
+                    : existingState.Agent,
+                ChunkCount = existingState.ChunkCount,
+                ReplacedChunks = 0,
+                IsUpdate = true,
+                Skipped = true,
+                FileHash = fileHash,
+                IngestedAt = string.IsNullOrWhiteSpace(existingState.IngestedAt) ? skippedAt : existingState.IngestedAt,
+                Document = document
+            };
         }
 
         var extension = Path.GetExtension(document.OriginalFileName).ToLowerInvariant();
@@ -63,7 +93,12 @@ public class DocumentIngestionService(
 
         var chunks = textChunkerService.Chunk(parseResult.Chunks);
         DocumentClassifierService.ApplyAgent(chunks, resolvedAgent);
+        var ingestedAt = DateTime.UtcNow.ToString("O");
+        ApplyIngestionMetadata(chunks, fileHash, ingestedAt);
         ApplyTemplateMetadata(chunks, template);
+        var replacedChunks = isUpdate
+            ? await vectorStoreService.DeleteBySourceFileAsync(document.OriginalFileName, ct)
+            : 0;
 
         if (chunks.Count == 0)
         {
@@ -77,6 +112,11 @@ public class DocumentIngestionService(
                 Agent = resolvedAgent,
                 ParsedChunkCount = parseResult.Chunks.Count,
                 ChunkCount = 0,
+                ReplacedChunks = replacedChunks,
+                IsUpdate = isUpdate,
+                Skipped = false,
+                FileHash = fileHash,
+                IngestedAt = ingestedAt,
                 Document = document,
                 Template = template,
                 FormMappingSuggestion = formMappingSuggestion
@@ -98,6 +138,11 @@ public class DocumentIngestionService(
             Agent = resolvedAgent,
             ParsedChunkCount = parseResult.Chunks.Count,
             ChunkCount = chunks.Count,
+            ReplacedChunks = replacedChunks,
+            IsUpdate = isUpdate,
+            Skipped = false,
+            FileHash = fileHash,
+            IngestedAt = ingestedAt,
             Document = document,
             Template = template,
             FormMappingSuggestion = formMappingSuggestion
@@ -184,6 +229,23 @@ public class DocumentIngestionService(
             chunk.IsFormTemplate = true;
             chunk.TemplatePath = template.UrlPath;
         }
+    }
+
+    private static void ApplyIngestionMetadata(IReadOnlyList<ParsedChunk> chunks, string fileHash, string ingestedAt)
+    {
+        foreach (var chunk in chunks)
+        {
+            chunk.FileHash = fileHash;
+            chunk.IngestedAt = ingestedAt;
+        }
+    }
+
+    private static string ComputeFileHash(string filePath)
+    {
+        using var md5 = MD5.Create();
+        using var stream = File.OpenRead(filePath);
+        var hash = md5.ComputeHash(stream);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     private class DocumentParseResult

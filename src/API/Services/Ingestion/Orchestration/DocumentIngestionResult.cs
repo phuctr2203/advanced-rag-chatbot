@@ -9,6 +9,11 @@ public class DocumentIngestionResult
     public string Agent { get; set; } = Classification.DocumentClassifierService.DefaultAgent;
     public int ParsedChunkCount { get; set; }
     public int ChunkCount { get; set; }
+    public int ReplacedChunks { get; set; }
+    public bool IsUpdate { get; set; }
+    public bool Skipped { get; set; }
+    public string FileHash { get; set; } = string.Empty;
+    public string IngestedAt { get; set; } = string.Empty;
     public StoredDocument? Document { get; set; }
     public StoredTemplate? Template { get; set; }
     public FormRegistrySuggestion? FormMappingSuggestion { get; set; }

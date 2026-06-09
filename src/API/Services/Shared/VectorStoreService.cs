@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Options;
 using PolicyBot.Api.Models;
 using PolicyBot.Api.Options;
@@ -45,7 +47,7 @@ public class VectorStoreService(IOptions<QdrantOptions> options, IEmbeddingProvi
 
         var points = chunks.Select((chunk, index) => new PointStruct
         {
-            Id = (ulong)HashCode.Combine(chunk.SourceFile, chunk.PageNumber, chunk.ChunkIndex),
+            Id = new PointId { Uuid = GenerateChunkId(chunk) },
             Vectors = vectors[index],
             Payload = { ToPayload(chunk) }
         }).ToList();
@@ -161,6 +163,55 @@ public class VectorStoreService(IOptions<QdrantOptions> options, IEmbeddingProvi
         return chunks;
     }
 
+    public async Task<DocumentIndexState?> GetDocumentIndexStateAsync(string sourceFile, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sourceFile))
+        {
+            return null;
+        }
+
+        await EnsureCollectionAsync(ct);
+
+        var filter = SourceFileFilter(sourceFile);
+        var count = await _client.CountAsync(
+            _options.CollectionName,
+            filter,
+            exact: true,
+            cancellationToken: ct);
+
+        if (count == 0)
+        {
+            return null;
+        }
+
+        var response = await _client.ScrollAsync(
+            _options.CollectionName,
+            limit: 1,
+            filter: filter,
+            payloadSelector: true,
+            vectorsSelector: false,
+            cancellationToken: ct);
+
+        var chunk = response.Result.Select(point => FromPayload(point.Payload)).FirstOrDefault();
+        if (chunk is null)
+        {
+            return new DocumentIndexState
+            {
+                SourceFile = sourceFile,
+                ChunkCount = (int)Math.Min(count, int.MaxValue)
+            };
+        }
+
+        return new DocumentIndexState
+        {
+            SourceFile = sourceFile,
+            FileHash = chunk.FileHash,
+            IngestedAt = chunk.IngestedAt,
+            Agent = chunk.Agent,
+            ChunkCount = (int)Math.Min(count, int.MaxValue)
+        };
+    }
+
     public async Task<int> DeleteBySourceFileAsync(string sourceFile, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(sourceFile))
@@ -224,6 +275,8 @@ public class VectorStoreService(IOptions<QdrantOptions> options, IEmbeddingProvi
             ["chunk_type"] = chunk.ChunkType,
             ["file_type"] = chunk.FileType,
             ["agent"] = chunk.Agent,
+            ["file_hash"] = chunk.FileHash,
+            ["ingested_at"] = chunk.IngestedAt,
             ["image_path"] = chunk.ImagePath,
             ["image_paths"] = string.Join('|', chunk.ImagePaths),
             ["is_form_template"] = chunk.IsFormTemplate,
@@ -242,6 +295,8 @@ public class VectorStoreService(IOptions<QdrantOptions> options, IEmbeddingProvi
             ChunkType = GetString(payload, "chunk_type"),
             FileType = GetString(payload, "file_type"),
             Agent = GetString(payload, "agent"),
+            FileHash = GetString(payload, "file_hash"),
+            IngestedAt = GetString(payload, "ingested_at"),
             ImagePath = GetString(payload, "image_path"),
             ImagePaths = GetString(payload, "image_paths")
                 .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -264,6 +319,13 @@ public class VectorStoreService(IOptions<QdrantOptions> options, IEmbeddingProvi
     private static bool GetBoolean(IDictionary<string, Value> payload, string key)
     {
         return payload.TryGetValue(key, out var value) && value.BoolValue;
+    }
+
+    private static string GenerateChunkId(ParsedChunk chunk)
+    {
+        var raw = $"{chunk.SourceFile}::{chunk.PageNumber}::{chunk.ChunkIndex}::{chunk.ChunkType}";
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
+        return new Guid(bytes[..16]).ToString();
     }
 
     private static Filter SourceFileFilter(string sourceFile)

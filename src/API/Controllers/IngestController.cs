@@ -23,7 +23,11 @@ public class IngestController(
     TemplateStorageService templateStorageService) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> Ingest(IFormFile file, [FromQuery] string? agent, CancellationToken ct)
+    public async Task<IActionResult> Ingest(
+        IFormFile file,
+        [FromQuery] string? agent,
+        [FromQuery] bool force = false,
+        CancellationToken ct = default)
     {
         if (InvalidAgentResponse(agent) is { } invalidAgent)
         {
@@ -43,17 +47,9 @@ public class IngestController(
         try
         {
             var document = await documentStorageService.SaveAsync(file, ct);
-            var result = await documentIngestionService.IngestAsync(document, agent, ct);
+            var result = await documentIngestionService.IngestAsync(document, agent, force, ct);
 
-            return Ok(new
-            {
-                message = $"{result.FileName} ingested successfully",
-                agent = result.Agent,
-                chunks = result.ChunkCount,
-                document = ToDocumentResponse(document),
-                template = ToTemplateResponse(result.Template),
-                formMappingSuggestion = result.FormMappingSuggestion
-            });
+            return Ok(ToIngestResponse(result, document));
         }
         catch (NotSupportedException exception)
         {
@@ -66,7 +62,11 @@ public class IngestController(
     }
 
     [HttpPost("batch")]
-    public async Task<IActionResult> BatchIngest([FromForm] List<IFormFile>? files, [FromQuery] string? agent, CancellationToken ct)
+    public async Task<IActionResult> BatchIngest(
+        [FromForm] List<IFormFile>? files,
+        [FromQuery] string? agent,
+        [FromQuery] bool force = false,
+        CancellationToken ct = default)
     {
         if (InvalidAgentResponse(agent) is { } invalidAgent)
         {
@@ -101,7 +101,7 @@ public class IngestController(
             try
             {
                 var document = await documentStorageService.SaveAsync(file, ct);
-                var result = await documentIngestionService.IngestAsync(document, agent, ct);
+                var result = await documentIngestionService.IngestAsync(document, agent, force, ct);
                 succeeded++;
                 results.Add(ToIngestResponse(result, document));
             }
@@ -322,9 +322,18 @@ public class IngestController(
         return new
         {
             fileName = result.FileName,
-            message = $"{result.FileName} ingested successfully",
+            message = result.Skipped
+                ? $"{result.FileName} unchanged - skipped"
+                : result.IsUpdate
+                    ? $"{result.FileName} updated successfully"
+                    : $"{result.FileName} ingested successfully",
             agent = result.Agent,
             chunks = result.ChunkCount,
+            replacedChunks = result.ReplacedChunks,
+            isUpdate = result.IsUpdate,
+            skipped = result.Skipped,
+            fileHash = result.FileHash,
+            ingestedAt = result.IngestedAt,
             document = ToDocumentResponse(document),
             template = ToTemplateResponse(result.Template),
             formMappingSuggestion = result.FormMappingSuggestion

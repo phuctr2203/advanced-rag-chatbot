@@ -44,6 +44,11 @@ export type IngestResponse = {
   status?: string;
   agent?: string;
   chunks?: number;
+  replacedChunks?: number;
+  isUpdate?: boolean;
+  skipped?: boolean;
+  fileHash?: string;
+  ingestedAt?: string;
   formMappingSuggestion?: FormMappingSuggestion | null;
   error?: string;
 };
