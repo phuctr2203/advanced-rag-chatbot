@@ -65,6 +65,67 @@ public class IngestController(
         }
     }
 
+    [HttpPost("batch")]
+    public async Task<IActionResult> BatchIngest([FromForm] List<IFormFile>? files, [FromQuery] string? agent, CancellationToken ct)
+    {
+        if (InvalidAgentResponse(agent) is { } invalidAgent)
+        {
+            return invalidAgent;
+        }
+
+        if (files is null || files.Count == 0)
+        {
+            return BadRequest(new { error = "Upload at least one document." });
+        }
+
+        var results = new List<object>();
+        var succeeded = 0;
+        var failed = 0;
+
+        foreach (var file in files)
+        {
+            if (file.Length == 0)
+            {
+                failed++;
+                results.Add(new { fileName = file.FileName, error = "Upload a non-empty document." });
+                continue;
+            }
+
+            if (!IsSupportedDocument(file.FileName))
+            {
+                failed++;
+                results.Add(new { fileName = file.FileName, error = $"Unsupported file type '{Path.GetExtension(file.FileName)}'." });
+                continue;
+            }
+
+            try
+            {
+                var document = await documentStorageService.SaveAsync(file, ct);
+                var result = await documentIngestionService.IngestAsync(document, agent, ct);
+                succeeded++;
+                results.Add(ToIngestResponse(result, document));
+            }
+            catch (NotSupportedException exception)
+            {
+                failed++;
+                results.Add(new { fileName = file.FileName, error = exception.Message });
+            }
+            catch (ArgumentException exception) when (exception.ParamName is "requestedAgent" or "agent")
+            {
+                failed++;
+                results.Add(new { fileName = file.FileName, error = exception.Message });
+            }
+        }
+
+        return Ok(new
+        {
+            message = $"Processed {files.Count} document(s).",
+            succeeded,
+            failed,
+            results
+        });
+    }
+
     [HttpPost("parse/pdf")]
     public async Task<IActionResult> ParsePdf(IFormFile file, [FromQuery] string? agent, CancellationToken ct)
     {
@@ -253,6 +314,20 @@ public class IngestController(
             template = ToTemplateResponse(template),
             agent = agent ?? chunks.FirstOrDefault()?.Agent ?? DocumentClassifierService.DefaultAgent,
             chunks
+        };
+    }
+
+    private static object ToIngestResponse(DocumentIngestionResult result, StoredDocument document)
+    {
+        return new
+        {
+            fileName = result.FileName,
+            message = $"{result.FileName} ingested successfully",
+            agent = result.Agent,
+            chunks = result.ChunkCount,
+            document = ToDocumentResponse(document),
+            template = ToTemplateResponse(result.Template),
+            formMappingSuggestion = result.FormMappingSuggestion
         };
     }
 

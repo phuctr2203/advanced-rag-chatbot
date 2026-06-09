@@ -9,7 +9,6 @@ public static class VectorServiceCollectionExtensions
         services.AddSingleton<VectorStoreService>();
         services.AddSingleton<IVectorStoreService>(serviceProvider => serviceProvider.GetRequiredService<VectorStoreService>());
         services.AddScoped<DocumentLibraryService>();
-        services.AddScoped<ProviderVisibilityService>();
 
         return services;
     }

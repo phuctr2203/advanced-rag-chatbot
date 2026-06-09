@@ -1,14 +1,14 @@
 [
-    {
-        "form_name": "Payment Request Form",
-        "aliases": [
-        "Request for payment",
-        "M\u1EABu \u0111\u1EC1 ngh\u1ECB thanh to\u00E1n",
-        "GI\u1EA4Y \u0110\u1EC0 NGH\u1ECA THANH TO\u00C1N",
-        "PAYMENT REQUEST"
-        ],
-        "docx_file": "9ee96f17670f8f0e_Payment request form.docx",
-        "download_path": "/templates/9ee96f17670f8f0e_Payment request form.docx",
-        "agent": "ELCA_GENERAL"
-    }
+  {
+    "form_name": "Payment Request Form",
+    "aliases": [
+      "Request for payment",
+      "M\u1EABu \u0111\u1EC1 ngh\u1ECB thanh to\u00E1n",
+      "GI\u1EA4Y \u0110\u1EC0 NGH\u1ECA THANH TO\u00C1N",
+      "PAYMENT REQUEST"
+    ],
+    "docx_file": "9ee96f17670f8f0e_Payment request form.docx",
+    "download_path": "/templates/9ee96f17670f8f0e_Payment request form.docx",
+    "agent": "ELCA_GENERAL"
+  }
 ]

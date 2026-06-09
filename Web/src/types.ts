@@ -47,6 +47,14 @@ export type IngestResponse = {
   error?: string;
 };
 
+export type BatchIngestResponse = {
+  message?: string;
+  succeeded?: number;
+  failed?: number;
+  results?: IngestResponse[];
+  error?: string;
+};
+
 export type AgentValue = '' | 'ELCA_HR' | 'ELCA_GENERAL' | 'CII_TOWER_SUPPORT';
 
 export type DocumentSummary = {
@@ -57,25 +65,4 @@ export type DocumentSummary = {
   pageCount: number;
   hasImages: boolean;
   hasFormTemplate: boolean;
-};
-
-export type CurrentProviderResponse = {
-  llmProvider: string;
-  llmModel: string;
-  visionProvider: string;
-  visionModel: string;
-  embeddingProvider: string;
-  embeddingBaseUrl: string;
-};
-
-export type ServiceStatus = {
-  name: string;
-  healthy: boolean;
-  message: string;
-};
-
-export type ProviderStatusResponse = {
-  llm: ServiceStatus;
-  embedding: ServiceStatus;
-  qdrant: ServiceStatus;
 };

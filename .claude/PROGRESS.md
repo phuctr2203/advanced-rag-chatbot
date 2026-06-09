@@ -103,8 +103,6 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 ## Enhancement Phase 1 — Retrieval UX, language robustness, and system visibility
 
 - [x] E1.3 Documents library — backend Qdrant document listing + frontend library view
-- [x] E1.4 Provider/model display only — show current configured provider and model in UI
-- [x] E1.5 Provider status display only — show LLM, embedding, and Qdrant health
 
 ## Phase 5 — Polish & demo prep
 
@@ -123,16 +121,6 @@ Start only after Phase 5 is complete.
 - [ ] 6.3 Tool-calling loop
 - [ ] 6.4 MCP server configured
 - [ ] 6.5 MCP tools exposed and externally tested
-
-## RAGAS Evaluation
-
-- [ ] EVAL 1 Corpus audit — inspect all 44 files, extract parser output, classify canonical and supporting sources
-- [ ] EVAL 2 Question draft generation — create approximately 100 grounded draft questions
-- [ ] EVAL 3 Dataset validation — review references, sources, pages, language, intent, and duplicates
-- [ ] EVAL 4 Evaluation query endpoint — expose trace metadata behind `Evaluation:Enabled`
-- [ ] EVAL 5 Offline RAGAS runner — run both evaluator profiles with resumable output
-- [ ] EVAL 6 DOCX report generation — export quantitative and deterministic checks
-- [ ] EVAL 7 Baseline and tuning loop — preserve baseline and compare improvements
 
 ---
  
@@ -161,4 +149,7 @@ Start only after Phase 5 is complete.
 - 2026-06-09: Implemented Phase 4 frontend in `Web/` following the Figma Make two-page structure: Chat and Documents navigation, streaming chat UI, source/image/form-download rendering, document upload with agent selector, and form mapping suggestion review actions. Verified `npm.cmd run build` and Vite dev server HTTP `200` on `http://127.0.0.1:5173`; in-app browser verification was unavailable because the `iab` browser surface was not present.
 - 2026-06-09: Verified Phase 4 frontend end-to-end on this workspace using Vite `http://127.0.0.1:5174` and API `http://127.0.0.1:5000` with `LlmProvider__Active=Ollama`. Fixed SSE parsing in `Web/src/api.ts` so CRLF-delimited `[SOURCES]` events are handled separately instead of leaking into assistant text. Rebuilt with `npm.cmd run build`. Browser-verified chat history + streaming greeting, grounded CII Tower answer with source chips and image rendering, upload endpoint success with manual `ELCA_HR` selection (`chunks: 48`), and form mapping review groups/actions (Accept, Reject, Choose another) with confidence scores.
 - 2026-06-09: Implemented and verified Enhancement Phase 1 tasks E1.3-E1.5. Added `GET /api/documents`, `DELETE /api/documents/{sourceFile}`, `GET /api/providers/current`, and `GET /api/providers/status`, plus the Documents page indexed-library table, delete controls, provider/model display, and service status chips. Verified `dotnet build src\API\PolicyBot.Api.csproj`, `npm.cmd run build`, provider current/status endpoints with Ollama/TEI/Qdrant healthy, Qdrant document summaries, disposable XLSX ingest appearing in the library (`48` chunks, `24` pages, `hasFormTemplate: true`), delete removing exactly `48` chunks and the row, and browser-rendered Documents UI with provider values, healthy chips, 45 indexed rows, table headers, and document-specific delete buttons.
+- 2026-06-09: Refined the Figma-style Documents upload flow. Added `POST /api/ingest/batch`, changed the Documents upload button to open a modal with multi-file selection/drag-drop, wired the frontend upload to the batch API, removed the agent selector from upload, and removed the agent column/search from the document list. Verified `npm.cmd run build`, `dotnet build src\API\PolicyBot.Api.csproj -c Release`, and source search confirming old upload-agent UI references are gone. Debug API build remains blocked while the existing local API process is running.
+- 2026-06-09: Removed system status/provider visibility for now per updated UI direction. Deleted `/api/providers/current` and `/api/providers/status`, removed provider response models and `ProviderVisibilityService`, removed the Chat system-status panel and frontend provider fetch code, and moved prompt suggestions into the chat panel above the composer as text-only suggestions with yellow star icons. E1.4/E1.5 are unchecked because the status display is intentionally no longer present.
+- 2026-06-09: Improved chat response presentation by rendering assistant markdown for paragraphs, numbered lists, bullet lists, and bold text without raw HTML, and changed downloadable form/file chips to use a download icon. Verified `npm.cmd run build`.
  

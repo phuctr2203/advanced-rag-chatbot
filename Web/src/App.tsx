@@ -1,20 +1,17 @@
 import {
   AlertCircle,
-  Activity,
   Bot,
-  Building2,
-  CalendarDays,
   Check,
-  ChevronDown,
   ChevronRight,
-  CreditCard,
-  Database,
+  Download,
   FileText,
   FolderOpen,
   Loader2,
   MessageSquareText,
   RefreshCw,
+  Search,
   Send,
+  Star,
   Trash2,
   Upload,
   X,
@@ -24,35 +21,22 @@ import {
   acceptSuggestion,
   chooseSuggestionTemplate,
   deleteDocument,
-  fetchCurrentProvider,
   fetchDocuments,
-  fetchProviderStatus,
   fetchSuggestions,
   rejectSuggestion,
   streamChat,
-  uploadDocument,
+  uploadDocuments,
 } from './api';
 import type {
-  AgentValue,
+  BatchIngestResponse,
   ChatMessage,
-  CurrentProviderResponse,
   DocumentSummary,
   FormDownloadRef,
   FormMappingSuggestion,
-  IngestResponse,
-  ProviderStatusResponse,
-  ServiceStatus,
   SourceRef,
 } from './types';
 
-type Page = 'chat' | 'documents';
-
-const agentOptions: Array<{ label: string; value: AgentValue }> = [
-  { label: 'Auto-detect', value: '' },
-  { label: 'ELCA HR', value: 'ELCA_HR' },
-  { label: 'ELCA General', value: 'ELCA_GENERAL' },
-  { label: 'CII Tower Support', value: 'CII_TOWER_SUPPORT' },
-];
+type Page = 'chat' | 'documents' | 'form-mapping';
 
 const starterMessages: ChatMessage[] = [
   {
@@ -63,21 +47,9 @@ const starterMessages: ChatMessage[] = [
 ];
 
 const chatPromptSuggestions = [
-  {
-    label: 'Payment',
-    question: 'How do I submit a payment request and where can I download the form?',
-    icon: CreditCard,
-  },
-  {
-    label: 'Annual leave',
-    question: 'How many additional annual leave days do I get based on seniority?',
-    icon: CalendarDays,
-  },
-  {
-    label: 'CII Tower',
-    question: 'What should I know about CII Tower support and building rules?',
-    icon: Building2,
-  },
+  'How do I submit a payment request and where can I download the form?',
+  'How many additional annual leave days do I get based on seniority?',
+  'How can I refer a candidate via Oracle?',
 ];
 
 export default function App() {
@@ -88,9 +60,6 @@ export default function App() {
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [documentsError, setDocumentsError] = useState('');
-  const [provider, setProvider] = useState<CurrentProviderResponse | null>(null);
-  const [providerStatus, setProviderStatus] = useState<ProviderStatusResponse | null>(null);
-  const [providerError, setProviderError] = useState('');
 
   const loadSuggestions = async () => {
     setSuggestionsLoading(true);
@@ -116,21 +85,9 @@ export default function App() {
     }
   };
 
-  const loadProviderInfo = async () => {
-    setProviderError('');
-    try {
-      const [current, status] = await Promise.all([fetchCurrentProvider(), fetchProviderStatus()]);
-      setProvider(current);
-      setProviderStatus(status);
-    } catch (error) {
-      setProviderError(error instanceof Error ? error.message : 'Could not load provider status.');
-    }
-  };
-
   useEffect(() => {
     void loadSuggestions();
     void loadDocuments();
-    void loadProviderInfo();
   }, []);
 
   return (
@@ -155,6 +112,10 @@ export default function App() {
             <FolderOpen size={18} aria-hidden="true" />
             <span>Documents</span>
           </button>
+          <button className={page === 'form-mapping' ? 'nav-item active' : 'nav-item'} onClick={() => setPage('form-mapping')}>
+            <FileText size={18} aria-hidden="true" />
+            <span>Form mapping</span>
+          </button>
         </nav>
 
         <div className="sidebar-status">
@@ -164,24 +125,26 @@ export default function App() {
       </aside>
 
       <main className="main-surface">
-        {page === 'chat' ? (
-          <ChatPage />
-        ) : (
+        {page === 'chat' && <ChatPage />}
+        {page === 'documents' && (
           <DocumentsPage
             suggestions={suggestions}
             setSuggestions={setSuggestions}
             reloadSuggestions={loadSuggestions}
-            suggestionsLoading={suggestionsLoading}
-            suggestionsError={suggestionsError}
             documents={documents}
             setDocuments={setDocuments}
             reloadDocuments={loadDocuments}
             documentsLoading={documentsLoading}
             documentsError={documentsError}
-            provider={provider}
-            providerStatus={providerStatus}
-            providerError={providerError}
-            reloadProviderInfo={loadProviderInfo}
+          />
+        )}
+        {page === 'form-mapping' && (
+          <FormMappingPage
+            suggestions={suggestions}
+            setSuggestions={setSuggestions}
+            reloadSuggestions={loadSuggestions}
+            suggestionsLoading={suggestionsLoading}
+            suggestionsError={suggestionsError}
           />
         )}
       </main>
@@ -292,24 +255,6 @@ function ChatPage() {
         </div>
       </div>
 
-      <div className="prompt-suggestions" aria-label="Suggested questions">
-        {chatPromptSuggestions.map(({ label, question, icon: Icon }) => (
-          <button
-            key={label}
-            type="button"
-            className="prompt-suggestion"
-            onClick={() => void submitMessage(question)}
-            disabled={isStreaming}
-          >
-            <Icon size={17} aria-hidden="true" />
-            <span>
-              <strong>{label}</strong>
-              <small>{question}</small>
-            </span>
-          </button>
-        ))}
-      </div>
-
       <div className="chat-panel">
         <div className="message-list" aria-live="polite">
           {messages.map((message) => (
@@ -329,6 +274,21 @@ function ChatPage() {
         </div>
 
         {error && <ErrorBanner message={error} />}
+
+        <div className="prompt-suggestions" aria-label="Suggested questions">
+          {chatPromptSuggestions.map((question) => (
+            <button
+              key={question}
+              type="button"
+              className="prompt-suggestion"
+              onClick={() => void submitMessage(question)}
+              disabled={isStreaming}
+            >
+              <Star size={15} aria-hidden="true" />
+              <span>{question}</span>
+            </button>
+          ))}
+        </div>
 
         <form className="composer" onSubmit={sendMessage}>
           <textarea
@@ -370,7 +330,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       )}
       <div className={isAssistant ? 'message-stack assistant-stack' : 'message-stack user-stack'}>
         <div className={isAssistant ? 'message-bubble assistant-bubble' : 'message-bubble user-bubble'}>
-          {message.content || ' '}
+          {isAssistant ? <MarkdownMessage content={message.content} /> : message.content || ' '}
         </div>
         {isAssistant && (
           <SourcesPanel sources={message.sources ?? []} formDownloads={message.formDownloads ?? []} />
@@ -378,6 +338,131 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </div>
     </article>
   );
+}
+
+type MarkdownBlock =
+  | { type: 'paragraph'; text: string }
+  | { type: 'ordered'; items: string[] }
+  | { type: 'unordered'; items: string[] };
+
+function MarkdownMessage({ content }: { content: string }) {
+  const blocks = useMemo(() => parseMarkdownBlocks(content), [content]);
+
+  if (blocks.length === 0) {
+    return <span> </span>;
+  }
+
+  return (
+    <div className="markdown-content">
+      {blocks.map((block, index) => {
+        if (block.type === 'ordered') {
+          return (
+            <ol key={index}>
+              {block.items.map((item, itemIndex) => (
+                <li key={`${index}-${itemIndex}`}>{renderInlineMarkdown(item)}</li>
+              ))}
+            </ol>
+          );
+        }
+
+        if (block.type === 'unordered') {
+          return (
+            <ul key={index}>
+              {block.items.map((item, itemIndex) => (
+                <li key={`${index}-${itemIndex}`}>{renderInlineMarkdown(item)}</li>
+              ))}
+            </ul>
+          );
+        }
+
+        return <p key={index}>{renderInlineMarkdown(block.text)}</p>;
+      })}
+    </div>
+  );
+}
+
+function parseMarkdownBlocks(content: string) {
+  const lines = content.replace(/\r\n/g, '\n').split('\n');
+  const blocks: MarkdownBlock[] = [];
+  let paragraph: string[] = [];
+  let orderedItems: string[] = [];
+  let unorderedItems: string[] = [];
+
+  const flushParagraph = () => {
+    if (paragraph.length > 0) {
+      blocks.push({ type: 'paragraph', text: paragraph.join(' ') });
+      paragraph = [];
+    }
+  };
+
+  const flushOrdered = () => {
+    if (orderedItems.length > 0) {
+      blocks.push({ type: 'ordered', items: orderedItems });
+      orderedItems = [];
+    }
+  };
+
+  const flushUnordered = () => {
+    if (unorderedItems.length > 0) {
+      blocks.push({ type: 'unordered', items: unorderedItems });
+      unorderedItems = [];
+    }
+  };
+
+  const flushLists = () => {
+    flushOrdered();
+    flushUnordered();
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushParagraph();
+      flushLists();
+      continue;
+    }
+
+    const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+    if (orderedMatch) {
+      flushParagraph();
+      flushUnordered();
+      orderedItems.push(orderedMatch[1]);
+      continue;
+    }
+
+    const unorderedMatch = trimmed.match(/^[-*]\s+(.*)$/);
+    if (unorderedMatch) {
+      flushParagraph();
+      flushOrdered();
+      unorderedItems.push(unorderedMatch[1]);
+      continue;
+    }
+
+    if (/^SOURCES:/i.test(trimmed)) {
+      flushParagraph();
+      flushLists();
+      blocks.push({ type: 'paragraph', text: trimmed });
+      continue;
+    }
+
+    flushLists();
+    paragraph.push(trimmed);
+  }
+
+  flushParagraph();
+  flushLists();
+  return blocks;
+}
+
+function renderInlineMarkdown(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+
+    return <span key={index}>{part}</span>;
+  });
 }
 
 function SourcesPanel({
@@ -431,7 +516,7 @@ function SourcesPanel({
 function DownloadLink({ download }: { download: FormDownloadRef }) {
   return (
     <a className="download-link" href={download.downloadPath}>
-      <FileText size={14} aria-hidden="true" />
+      <Download size={14} aria-hidden="true" />
       {download.formName}
     </a>
   );
@@ -441,43 +526,68 @@ function DocumentsPage({
   suggestions,
   setSuggestions,
   reloadSuggestions,
-  suggestionsLoading,
-  suggestionsError,
   documents,
   setDocuments,
   reloadDocuments,
   documentsLoading,
   documentsError,
-  provider,
-  providerStatus,
-  providerError,
-  reloadProviderInfo,
 }: {
   suggestions: FormMappingSuggestion[];
   setSuggestions: (suggestions: FormMappingSuggestion[]) => void;
   reloadSuggestions: () => Promise<void>;
-  suggestionsLoading: boolean;
-  suggestionsError: string;
   documents: DocumentSummary[];
   setDocuments: (documents: DocumentSummary[]) => void;
   reloadDocuments: () => Promise<void>;
   documentsLoading: boolean;
   documentsError: string;
-  provider: CurrentProviderResponse | null;
-  providerStatus: ProviderStatusResponse | null;
-  providerError: string;
-  reloadProviderInfo: () => Promise<void>;
 }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [agent, setAgent] = useState<AgentValue>('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [fileTypeFilter, setFileTypeFilter] = useState('all');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [uploadResult, setUploadResult] = useState<IngestResponse | null>(null);
+  const [uploadResult, setUploadResult] = useState<BatchIngestResponse | null>(null);
   const [deletingDocument, setDeletingDocument] = useState('');
+
+  const documentStats = useMemo(() => {
+    const typeCounts = documents.reduce<Record<string, { count: number; chunks: number }>>((acc, document) => {
+      const type = (document.fileType || 'unknown').toUpperCase();
+      acc[type] = acc[type] ?? { count: 0, chunks: 0 };
+      acc[type].count += 1;
+      acc[type].chunks += document.chunkCount;
+      return acc;
+    }, {});
+
+    return {
+      totalDocuments: documents.length,
+      totalChunks: documents.reduce((sum, document) => sum + document.chunkCount, 0),
+      types: Object.entries(typeCounts).sort(([left], [right]) => left.localeCompare(right)),
+    };
+  }, [documents]);
+
+  const filteredDocuments = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return documents.filter((document) => {
+      const type = (document.fileType || 'unknown').toUpperCase();
+      const matchesType = fileTypeFilter === 'all' || type === fileTypeFilter;
+      const matchesQuery = !query
+        || document.sourceFile.toLowerCase().includes(query)
+        || type.toLowerCase().includes(query);
+
+      return matchesType && matchesQuery;
+    });
+  }, [documents, fileTypeFilter, searchTerm]);
+
+  const handleFileSelection = (fileList: FileList | null) => {
+    setFiles(Array.from(fileList ?? []));
+    setUploadResult(null);
+    setUploadError('');
+  };
 
   const handleUpload = async (event: FormEvent) => {
     event.preventDefault();
-    if (!file || uploading) {
+    if (files.length === 0 || uploading) {
       return;
     }
 
@@ -485,24 +595,23 @@ function DocumentsPage({
     setUploadError('');
     setUploadResult(null);
     try {
-      const result = await uploadDocument(file, agent);
+      const result = await uploadDocuments(files);
       setUploadResult(result);
-      if (result.formMappingSuggestion) {
-        setSuggestions([result.formMappingSuggestion, ...suggestions.filter((item) => item.id !== result.formMappingSuggestion?.id)]);
+      const newSuggestions = result.results?.flatMap((item) => item.formMappingSuggestion ? [item.formMappingSuggestion] : []) ?? [];
+      if (newSuggestions.length > 0) {
+        const existingIds = new Set(newSuggestions.map((item) => item.id));
+        setSuggestions([...newSuggestions, ...suggestions.filter((item) => !existingIds.has(item.id))]);
       } else {
         await reloadSuggestions();
       }
+      setFiles([]);
+      setUploadModalOpen(false);
       await reloadDocuments();
-      await reloadProviderInfo();
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : 'Upload failed.');
     } finally {
       setUploading(false);
     }
-  };
-
-  const upsertSuggestion = (updated: FormMappingSuggestion) => {
-    setSuggestions(suggestions.map((suggestion) => (suggestion.id === updated.id ? updated : suggestion)));
   };
 
   const handleDeleteDocument = async (sourceFile: string) => {
@@ -523,11 +632,194 @@ function DocumentsPage({
   };
 
   return (
-    <section className="page-grid documents-layout">
+    <section className="documents-layout">
+      <aside className="documents-sidebar">
+        <h2>Statistics</h2>
+        <div className="stat-grid">
+          <div className="stat-card">
+            <strong>{documentStats.totalDocuments}</strong>
+            <span>Documents</span>
+          </div>
+          <div className="stat-card">
+            <strong>{documentStats.totalChunks}</strong>
+            <span>Chunks</span>
+          </div>
+        </div>
+
+        <div className="file-type-filter">
+          <h2>File Type</h2>
+          <button
+            className={fileTypeFilter === 'all' ? 'file-type-row active' : 'file-type-row'}
+            type="button"
+            onClick={() => setFileTypeFilter('all')}
+          >
+            <span>All</span>
+            <strong>{documentStats.totalDocuments}</strong>
+          </button>
+          {documentStats.types.map(([type, stats]) => (
+            <button
+              className={fileTypeFilter === type ? 'file-type-row active' : 'file-type-row'}
+              key={type}
+              type="button"
+              onClick={() => setFileTypeFilter(type)}
+            >
+              <span>{type}</span>
+              <strong>{stats.count}</strong>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <section className="documents-main">
+        <div className="documents-toolbar">
+          <label className="search-box" htmlFor="document-search">
+            <Search size={18} aria-hidden="true" />
+            <input
+              id="document-search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search documents..."
+            />
+          </label>
+
+          <div className="document-actions">
+            <button className="secondary-button" onClick={() => void reloadDocuments()} disabled={documentsLoading}>
+              <RefreshCw size={16} className={documentsLoading ? 'spin' : ''} aria-hidden="true" />
+              Refresh
+            </button>
+            <button className="primary-button upload-modal-button" onClick={() => setUploadModalOpen(true)}>
+              <Upload size={16} aria-hidden="true" />
+              Upload document
+            </button>
+          </div>
+        </div>
+
+        {(uploadError || uploadResult) && (
+          <section className="upload-feedback">
+            {uploadError && <ErrorBanner message={uploadError} />}
+            {uploadResult && (
+              <div className="success-box">
+                <Check size={16} aria-hidden="true" />
+                <div>
+                  <strong>{uploadResult.message ?? 'Documents processed.'}</strong>
+                  <span>{uploadResult.succeeded ?? 0} succeeded - {uploadResult.failed ?? 0} failed</span>
+                </div>
+              </div>
+            )}
+            {uploadResult?.results?.some((item) => item.formMappingSuggestion) && (
+              <div className="empty-state small">
+                New form mapping suggestion is ready in the Form mapping tab.
+              </div>
+            )}
+          </section>
+        )}
+
+        <section className="documents-table-section">
+          {documentsError && <ErrorBanner message={documentsError} />}
+          <DocumentLibrary
+            documents={filteredDocuments}
+            loading={documentsLoading}
+            deletingDocument={deletingDocument}
+            onDelete={handleDeleteDocument}
+          />
+        </section>
+
+        {uploadModalOpen && (
+          <div className="modal-backdrop" role="presentation">
+            <form className="upload-dialog" onSubmit={handleUpload} aria-label="Upload document">
+              <div className="modal-heading">
+                <h2>Upload Document</h2>
+                <button
+                  type="button"
+                  className="icon-button ghost"
+                  onClick={() => {
+                    setUploadModalOpen(false);
+                    setFiles([]);
+                  }}
+                  aria-label="Close upload dialog"
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </div>
+
+              <label
+                className="dropzone"
+                htmlFor="document-files"
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  handleFileSelection(event.dataTransfer.files);
+                }}
+              >
+                <Upload size={36} aria-hidden="true" />
+                <span>Drop files here or click to browse</span>
+              </label>
+              <input
+                id="document-files"
+                className="sr-only"
+                type="file"
+                multiple
+                accept=".pdf,.docx,.doc,.xlsx,.pptx"
+                onChange={(event) => handleFileSelection(event.target.files)}
+              />
+
+              {files.length > 0 && (
+                <div className="selected-files">
+                  {files.map((selectedFile) => (
+                    <span key={`${selectedFile.name}-${selectedFile.size}`}>{selectedFile.name}</span>
+                  ))}
+                </div>
+              )}
+
+              {uploadError && <ErrorBanner message={uploadError} />}
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    setUploadModalOpen(false);
+                    setFiles([]);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button className="primary-button" type="submit" disabled={files.length === 0 || uploading}>
+                  {uploading ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Upload size={16} aria-hidden="true" />}
+                  Upload
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </section>
+    </section>
+  );
+}
+
+function FormMappingPage({
+  suggestions,
+  setSuggestions,
+  reloadSuggestions,
+  suggestionsLoading,
+  suggestionsError,
+}: {
+  suggestions: FormMappingSuggestion[];
+  setSuggestions: (suggestions: FormMappingSuggestion[]) => void;
+  reloadSuggestions: () => Promise<void>;
+  suggestionsLoading: boolean;
+  suggestionsError: string;
+}) {
+  const upsertSuggestion = (updated: FormMappingSuggestion) => {
+    setSuggestions(suggestions.map((suggestion) => (suggestion.id === updated.id ? updated : suggestion)));
+  };
+
+  return (
+    <section className="page-grid form-mapping-layout">
       <div className="page-header">
         <div>
-          <p className="eyebrow">Knowledge base</p>
-          <h1>Documents</h1>
+          <p className="eyebrow">Review queue</p>
+          <h1>Form mapping</h1>
         </div>
         <button className="secondary-button" onClick={() => void reloadSuggestions()} disabled={suggestionsLoading}>
           <RefreshCw size={16} className={suggestionsLoading ? 'spin' : ''} aria-hidden="true" />
@@ -535,157 +827,24 @@ function DocumentsPage({
         </button>
       </div>
 
-      <div className="documents-grid">
-        <section className="panel upload-panel">
-          <div className="panel-heading">
-            <Upload size={18} aria-hidden="true" />
-            <h2>Upload document</h2>
-          </div>
-
-          <form className="upload-form" onSubmit={handleUpload}>
-            <label className="field-label" htmlFor="document-file">File</label>
-            <input
-              id="document-file"
-              type="file"
-              accept=".pdf,.docx,.doc,.xlsx,.pptx"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            />
-
-            <label className="field-label" htmlFor="agent-select">Agent</label>
-            <div className="select-wrap">
-              <select id="agent-select" value={agent} onChange={(event) => setAgent(event.target.value as AgentValue)}>
-                {agentOptions.map((option) => (
-                  <option key={option.value || 'auto'} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={16} aria-hidden="true" />
-            </div>
-
-            <button className="primary-button" type="submit" disabled={!file || uploading}>
-              {uploading ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Upload size={16} aria-hidden="true" />}
-              Upload
-            </button>
-          </form>
-
-          {uploadError && <ErrorBanner message={uploadError} />}
-          {uploadResult && (
-            <div className="success-box">
-              <Check size={16} aria-hidden="true" />
-              <div>
-                <strong>{uploadResult.message ?? 'Document ingested successfully.'}</strong>
-                <span>{uploadResult.agent ?? 'Auto-detected'} - {uploadResult.chunks ?? 0} chunks</span>
-              </div>
-            </div>
-          )}
-
-          {uploadResult?.formMappingSuggestion && (
-            <SuggestionCard suggestion={uploadResult.formMappingSuggestion} onUpdate={upsertSuggestion} compact />
-          )}
-        </section>
-
-        <section className="panel system-panel">
-          <div className="panel-heading">
-            <Activity size={18} aria-hidden="true" />
-            <h2>System status</h2>
-          </div>
-          {providerError && <ErrorBanner message={providerError} />}
-          <ProviderSummary provider={provider} status={providerStatus} onRefresh={reloadProviderInfo} />
-        </section>
-
-        <section className="panel library-panel">
-          <div className="panel-heading split-heading">
-            <div>
-              <Database size={18} aria-hidden="true" />
-              <h2>Indexed documents</h2>
-            </div>
-            <button className="secondary-button" onClick={() => void reloadDocuments()} disabled={documentsLoading}>
-              <RefreshCw size={16} className={documentsLoading ? 'spin' : ''} aria-hidden="true" />
-              Refresh
-            </button>
-          </div>
-          {documentsError && <ErrorBanner message={documentsError} />}
-          <DocumentLibrary
-            documents={documents}
-            loading={documentsLoading}
-            deletingDocument={deletingDocument}
-            onDelete={handleDeleteDocument}
-          />
-        </section>
-
-        <section className="panel review-panel">
-          <div className="panel-heading">
-            <FileText size={18} aria-hidden="true" />
-            <h2>Form mapping review</h2>
-          </div>
-          <p className="panel-copy">This is a suggested mapping. Review before accepting.</p>
-
-          {suggestionsError && <ErrorBanner message={suggestionsError} />}
-          {suggestionsLoading && suggestions.length === 0 ? (
-            <div className="empty-state">
-              <Loader2 size={18} className="spin" aria-hidden="true" />
-              Loading suggestions
-            </div>
-          ) : (
-            <SuggestionGroups suggestions={suggestions} onUpdate={upsertSuggestion} />
-          )}
-        </section>
-      </div>
-    </section>
-  );
-}
-
-function ProviderSummary({
-  provider,
-  status,
-  onRefresh,
-}: {
-  provider: CurrentProviderResponse | null;
-  status: ProviderStatusResponse | null;
-  onRefresh: () => Promise<void>;
-}) {
-  const statuses = status ? [status.llm, status.embedding, status.qdrant] : [];
-
-  return (
-    <div className="provider-summary">
-      <div className="provider-grid">
-        <div>
-          <span>LLM</span>
-          <strong>{provider ? `${provider.llmProvider} / ${provider.llmModel || 'No model'}` : 'Loading'}</strong>
+      <section className="panel review-panel">
+        <div className="panel-heading">
+          <FileText size={18} aria-hidden="true" />
+          <h2>Form mapping review</h2>
         </div>
-        <div>
-          <span>Vision</span>
-          <strong>{provider ? `${provider.visionProvider} / ${provider.visionModel || 'No model'}` : 'Loading'}</strong>
-        </div>
-        <div>
-          <span>Embedding</span>
-          <strong>{provider ? `${provider.embeddingProvider} / ${provider.embeddingBaseUrl}` : 'Loading'}</strong>
-        </div>
-      </div>
+        <p className="panel-copy">This is a suggested mapping. Review before accepting.</p>
 
-      <div className="status-chip-row">
-        {statuses.length === 0 ? (
-          <span className="status-chip pending">Checking services</span>
+        {suggestionsError && <ErrorBanner message={suggestionsError} />}
+        {suggestionsLoading && suggestions.length === 0 ? (
+          <div className="empty-state">
+            <Loader2 size={18} className="spin" aria-hidden="true" />
+            Loading suggestions
+          </div>
         ) : (
-          statuses.map((item) => <StatusChip key={item.name} status={item} />)
+          <SuggestionGroups suggestions={suggestions} onUpdate={upsertSuggestion} />
         )}
-      </div>
-
-      <button className="secondary-button compact-button" onClick={() => void onRefresh()}>
-        <RefreshCw size={15} aria-hidden="true" />
-        Refresh status
-      </button>
-    </div>
-  );
-}
-
-function StatusChip({ status }: { status: ServiceStatus }) {
-  return (
-    <span className={status.healthy ? 'status-chip healthy' : 'status-chip unhealthy'} title={status.message}>
-      <span className="status-dot" />
-      {status.name}
-    </span>
+      </section>
+    </section>
   );
 }
 
@@ -719,7 +878,6 @@ function DocumentLibrary({
         <thead>
           <tr>
             <th>Filename</th>
-            <th>Agent</th>
             <th>Type</th>
             <th>Chunks</th>
             <th>Pages</th>
@@ -737,7 +895,6 @@ function DocumentLibrary({
                   <span title={document.sourceFile}>{document.sourceFile}</span>
                 </div>
               </td>
-              <td>{document.agent || 'Unknown'}</td>
               <td>{document.fileType || 'Unknown'}</td>
               <td>{document.chunkCount}</td>
               <td>{document.pageCount}</td>

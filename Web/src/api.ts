@@ -1,10 +1,7 @@
 import type {
-  AgentValue,
-  CurrentProviderResponse,
+  BatchIngestResponse,
   DocumentSummary,
   FormMappingSuggestion,
-  IngestResponse,
-  ProviderStatusResponse,
   SourcesPayload,
 } from './types';
 
@@ -53,22 +50,24 @@ export async function streamChat(message: string, handlers: StreamHandlers, sign
   }
 }
 
-export async function uploadDocument(file: File, agent: AgentValue) {
+export async function uploadDocuments(files: File[]) {
   const form = new FormData();
-  form.append('file', file);
+  files.forEach((file) => form.append('files', file));
 
-  const query = agent ? `?agent=${encodeURIComponent(agent)}` : '';
-  const response = await fetch(`/api/ingest${query}`, {
+  const response = await fetch('/api/ingest/batch', {
     method: 'POST',
     body: form,
   });
-  const payload = (await response.json()) as IngestResponse;
+  const payload = (await response.json()) as BatchIngestResponse;
 
   if (!response.ok) {
     throw new Error(payload.error ?? 'Document upload failed.');
   }
 
-  return normalizeIngestResponse(payload);
+  return {
+    ...payload,
+    results: payload.results?.map(normalizeIngestResponse) ?? [],
+  };
 }
 
 export async function fetchSuggestions() {
@@ -101,24 +100,6 @@ export async function deleteDocument(sourceFile: string) {
   }
 
   return payload as { sourceFile: string; deletedChunks: number };
-}
-
-export async function fetchCurrentProvider() {
-  const response = await fetch('/api/providers/current');
-  if (!response.ok) {
-    throw new Error(await readError(response));
-  }
-
-  return (await response.json()) as CurrentProviderResponse;
-}
-
-export async function fetchProviderStatus() {
-  const response = await fetch('/api/providers/status');
-  if (!response.ok) {
-    throw new Error(await readError(response));
-  }
-
-  return (await response.json()) as ProviderStatusResponse;
 }
 
 export async function acceptSuggestion(id: string) {
@@ -197,7 +178,7 @@ async function readError(response: Response) {
   }
 }
 
-function normalizeIngestResponse(payload: IngestResponse) {
+function normalizeIngestResponse(payload: NonNullable<BatchIngestResponse['results']>[number]) {
   return {
     ...payload,
     formMappingSuggestion: payload.formMappingSuggestion
