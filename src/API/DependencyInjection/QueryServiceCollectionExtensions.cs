@@ -17,6 +17,7 @@ public static class QueryServiceCollectionExtensions
         services.AddScoped<KeywordSearchService>();
         services.AddScoped<HybridSearchService>();
         services.AddScoped<ChatOrchestrator>();
+        services.AddScoped<EvaluationChatOrchestrator>();
 
         return services;
     }

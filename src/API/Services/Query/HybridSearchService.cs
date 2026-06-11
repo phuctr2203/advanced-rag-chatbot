@@ -14,9 +14,14 @@ public class HybridSearchService(
 
     public async Task<IReadOnlyList<ScoredChunk>> SearchAsync(string query, CancellationToken ct = default)
     {
-        var limit = Math.Max(_options.Limit, 1);
-        var candidateLimit = Math.Max(_options.CandidateLimit, limit);
-        return await SearchHybridAsync(query, limit, candidateLimit, ct);
+        return await SearchAsync(query, limit: null, ct);
+    }
+
+    public async Task<IReadOnlyList<ScoredChunk>> SearchAsync(string query, int? limit, CancellationToken ct = default)
+    {
+        var resultLimit = Math.Max(limit ?? _options.Limit, 1);
+        var candidateLimit = Math.Max(_options.CandidateLimit, resultLimit);
+        return await SearchHybridAsync(query, resultLimit, candidateLimit, ct);
     }
 
     public async Task<HybridSearchDiagnostics> CompareAsync(string query, CancellationToken ct = default)

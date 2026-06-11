@@ -71,3 +71,8 @@ desktop.ini
 artifacts/
 data/form-registry.json
 real_data/
+evaluation/config.example.json
+evaluation/__pycache__/
+evaluation/dataset/
+evaluation/outputs/
+evaluation/.venv/

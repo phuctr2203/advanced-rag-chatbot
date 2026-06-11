@@ -1,0 +1,11 @@
+openai
+ragas==0.2.15
+openpyxl
+pandas
+numpy
+datasets
+langchain==0.3.27
+langchain-community==0.3.27
+langchain-core==0.3.80
+langchain-openai==0.3.35
+transformers
