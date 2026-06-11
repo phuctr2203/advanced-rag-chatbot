@@ -667,12 +667,15 @@ select:focus {
 
 .upload-dialog {
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   gap: 20px;
   width: min(426px, 100%);
+  max-height: calc(100vh - 40px);
   padding: 30px;
   border-radius: 14px;
   background: #ffffff;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+  overflow: hidden;
 }
 
 .modal-heading {
@@ -713,6 +716,10 @@ select:focus {
 .selected-files {
   display: grid;
   gap: 7px;
+  max-height: min(240px, 32vh);
+  padding-right: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .selected-files span {

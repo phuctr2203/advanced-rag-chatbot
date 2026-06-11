@@ -160,7 +160,7 @@ public class QueryIntentVerificationRequest
 public class VectorSearchVerificationRequest
 {
     public string Query { get; set; } = string.Empty;
-    public int Limit { get; set; } = 6;
+    public int? Limit { get; set; }
 }
 
 public class PromptBuilderVerificationRequest

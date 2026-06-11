@@ -99,7 +99,7 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 3.R5 Chat endpoint uses the dense-rerank retrieval path
 - [x] 3.R6 Evaluation endpoint uses the same dense-rerank retrieval path
 - [ ] 3.R7 Reranker fallback to dense retrieval verified when service is unavailable
-- [ ] 3.R8 `/verify/rerank-search` diagnostic endpoint added and verified
+- [x] 3.R8 `/verify/rerank-search` diagnostic endpoint added and verified
 - [ ] 3.R9 RAGAS before/after pilot completed and metrics compared
 - [ ] 3.R10 Final `CandidateLimit` and `FinalLimit` selected from evaluation results
 
@@ -194,4 +194,7 @@ Start only after Phase 5 is complete.
 - 2026-06-11: Added local FastAPI reranker wrapper for `jinaai/jina-reranker-v2-base-multilingual`. Installed CPU PyTorch/FastAPI dependencies, patched a Transformers compatibility issue for Jina remote code, started the service on `http://127.0.0.1:8081`, and verified `/rerank` with the multilingual smoke test. EN, VI, FR, and DE all ranked the annual-leave candidate first. The service files were moved into `python_service/` (`reranker_service.py`, `requirements.txt`). The server process is still running on port 8081 for follow-up testing.
 - 2026-06-11: Added reranking implementation plan in `docs/enhancements/enhancement-phase-3-reranking.md` and mirrored Enhancement Phase 3.2 checklist items 3.R1-3.R10. Scope is dense search top candidates plus local multilingual reranker final ranking, with fallback to dense retrieval and RAGAS before/after comparison.
 - 2026-06-11: Implemented dense-rerank retrieval in the API: `RetrievalOptions`, `RerankerOptions`, `HttpRerankerService`, `DenseRerankSearchService`, shared chat/evaluation retrieval path, `/verify/rerank-search`, and appsettings defaults for `http://127.0.0.1:8081/rerank`. Verified `dotnet build src\API\PolicyBot.Api.csproj -c Release`. Runtime verification of `/verify/rerank-search` is blocked because Qdrant health/gRPC calls are currently failing locally before reranking is reached.
+- 2026-06-11: Rechecked rerank runtime after Qdrant fix. Qdrant `/healthz` passes, reranker `/health` passes, and temporary API on `127.0.0.1:5055` starts. `/verify/rerank-search` is reachable but returns no dense candidates because configured collection `rag_policy_docs` has 0 points; `/api/documents` also returns 0. Fixed diagnostic metadata so `rerankerEnabled` reflects config even when there are no candidates. Rebuilt Release successfully. Full rerank verification still requires re-ingesting documents into `rag_policy_docs`.
+- 2026-06-11: Verified full dense-rerank flow after documents were indexed in `rag_policy_docs`. With reranker warm on `http://127.0.0.1:8081`, `/verify/rerank-search` on temporary API `127.0.0.1:5055` returned `rerankerUsed: true`, no fallback, 10 dense candidates, and 4 reranked results. Top result changed from page 2 to page 3 for `annual leave seniority`. Current CPU settings are `CandidateLimit=10`, `FinalLimit=4`, `MaxDocumentCharacters=2000`, and `TimeoutSeconds=240`; reranking took about 33s on CPU.
+- 2026-06-11: Fixed Documents upload modal overflow. The modal now has a viewport-capped height and the selected-file list scrolls so the Cancel/Upload actions remain visible when many files are selected. Verified with `npm.cmd run build`.
  

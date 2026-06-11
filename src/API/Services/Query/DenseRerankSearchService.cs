@@ -53,7 +53,7 @@ public class DenseRerankSearchService(
                 Results = [],
                 DenseRetrievalMilliseconds = denseStopwatch.ElapsedMilliseconds,
                 RerankingMilliseconds = 0,
-                RerankerEnabled = false,
+                RerankerEnabled = _rerankerOptions.Enabled,
                 RerankerUsed = false,
                 FallbackReason = "no_dense_candidates"
             };

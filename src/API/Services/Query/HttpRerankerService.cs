@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using PolicyBot.Api.Models;
 using PolicyBot.Api.Options;
@@ -46,7 +47,7 @@ public class HttpRerankerService(
                     {
                         Model = _options.Model,
                         Query = query,
-                        Documents = candidates.Select(candidate => candidate.Chunk.Text).ToList(),
+                        Documents = candidates.Select(candidate => Truncate(candidate.Chunk.Text, _options.MaxDocumentCharacters)).ToList(),
                         TopN = Math.Min(Math.Max(limit, 1), candidates.Count),
                         ReturnDocuments = false
                     }, JsonOptions),
@@ -97,6 +98,16 @@ public class HttpRerankerService(
         var baseUrl = _options.BaseUrl.TrimEnd('/');
         var endpoint = string.IsNullOrWhiteSpace(_options.Endpoint) ? string.Empty : "/" + _options.Endpoint.TrimStart('/');
         return new Uri(baseUrl + endpoint);
+    }
+
+    private static string Truncate(string text, int maxCharacters)
+    {
+        if (maxCharacters <= 0 || text.Length <= maxCharacters)
+        {
+            return text;
+        }
+
+        return text[..maxCharacters];
     }
 
     private static IReadOnlyList<ScoredChunk> BuildRerankedResults(
@@ -179,6 +190,7 @@ public class HttpRerankerService(
     private class RerankerResult
     {
         public int Index { get; set; }
+        [JsonPropertyName("relevance_score")]
         public float RelevanceScore { get; set; }
         public float Score { get; set; }
     }

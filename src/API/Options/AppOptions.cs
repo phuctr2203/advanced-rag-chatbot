@@ -67,8 +67,8 @@ public class HybridSearchOptions
 public class RetrievalOptions
 {
     public string Mode { get; set; } = "DenseRerank";
-    public int FinalLimit { get; set; } = 6;
-    public int CandidateLimit { get; set; } = 30;
+    public int FinalLimit { get; set; } = 4;
+    public int CandidateLimit { get; set; } = 10;
     public float MinimumScore { get; set; } = 0.45f;
 }
 
@@ -79,6 +79,7 @@ public class RerankerOptions
     public string Endpoint { get; set; } = "/rerank";
     public string ApiKey { get; set; } = string.Empty;
     public string Model { get; set; } = "jinaai/jina-reranker-v2-base-multilingual";
-    public int TimeoutSeconds { get; set; } = 30;
+    public int TimeoutSeconds { get; set; } = 240;
+    public int MaxDocumentCharacters { get; set; } = 2000;
     public bool FallbackToDenseOnError { get; set; } = true;
 }
