@@ -12,6 +12,8 @@ public static class OptionsServiceCollectionExtensions
         services.Configure<QdrantOptions>(configuration.GetSection("Qdrant"));
         services.Configure<IngestionOptions>(configuration.GetSection("Ingestion"));
         services.Configure<HybridSearchOptions>(configuration.GetSection("HybridSearch"));
+        services.Configure<RetrievalOptions>(configuration.GetSection("Retrieval"));
+        services.Configure<RerankerOptions>(configuration.GetSection("Reranker"));
 
         return services;
     }

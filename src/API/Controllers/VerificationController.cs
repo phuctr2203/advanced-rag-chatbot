@@ -16,7 +16,8 @@ public class VerificationController(
     LanguageDetectionService languageDetectionService,
     IntentClassifierService intentClassifierService,
     LlmService llmService,
-    HybridSearchService hybridSearchService) : ControllerBase
+    HybridSearchService hybridSearchService,
+    DenseRerankSearchService denseRerankSearchService) : ControllerBase
 {
     [HttpPost("llm")]
     public async Task<IActionResult> VerifyLlm(CancellationToken ct)
@@ -83,6 +84,29 @@ public class VerificationController(
             keyword = ToSearchResultResponse(diagnostics.Keyword),
             hybrid = ToSearchResultResponse(diagnostics.Hybrid),
             passed = diagnostics.Hybrid.Count > 0
+        });
+    }
+
+    [HttpPost("rerank-search")]
+    public async Task<IActionResult> VerifyRerankSearch([FromBody] VectorSearchVerificationRequest request, CancellationToken ct)
+    {
+        var diagnostics = await denseRerankSearchService.SearchWithDiagnosticsAsync(request.Query, request.Limit, ct);
+
+        return Ok(new
+        {
+            diagnostics.Query,
+            rerankerEnabled = diagnostics.RerankerEnabled,
+            rerankerUsed = diagnostics.RerankerUsed,
+            diagnostics.FallbackReason,
+            timingsMs = new
+            {
+                denseRetrieval = diagnostics.DenseRetrievalMilliseconds,
+                reranking = diagnostics.RerankingMilliseconds,
+                totalRetrieval = diagnostics.DenseRetrievalMilliseconds + diagnostics.RerankingMilliseconds
+            },
+            denseCandidates = ToSearchResultResponse(diagnostics.DenseCandidates),
+            rerankedResults = ToSearchResultResponse(diagnostics.Results),
+            passed = diagnostics.Results.Count > 0
         });
     }
 

@@ -63,3 +63,22 @@ public class HybridSearchOptions
     public int CandidateLimit { get; set; } = 20;
     public float MinimumScore { get; set; } = 0.45f;
 }
+
+public class RetrievalOptions
+{
+    public string Mode { get; set; } = "DenseRerank";
+    public int FinalLimit { get; set; } = 6;
+    public int CandidateLimit { get; set; } = 30;
+    public float MinimumScore { get; set; } = 0.45f;
+}
+
+public class RerankerOptions
+{
+    public bool Enabled { get; set; } = true;
+    public string BaseUrl { get; set; } = "http://127.0.0.1:8081";
+    public string Endpoint { get; set; } = "/rerank";
+    public string ApiKey { get; set; } = string.Empty;
+    public string Model { get; set; } = "jinaai/jina-reranker-v2-base-multilingual";
+    public int TimeoutSeconds { get; set; } = 30;
+    public bool FallbackToDenseOnError { get; set; } = true;
+}

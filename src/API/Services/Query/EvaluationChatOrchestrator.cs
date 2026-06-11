@@ -6,7 +6,7 @@ namespace PolicyBot.Api.Services.Query;
 public class EvaluationChatOrchestrator(
     LanguageDetectionService languageDetectionService,
     IntentClassifierService intentClassifierService,
-    HybridSearchService hybridSearchService,
+    DenseRerankSearchService denseRerankSearchService,
     PromptBuilderService promptBuilderService,
     LlmService llmService,
     SourceCitationParser sourceCitationParser,
@@ -61,7 +61,7 @@ public class EvaluationChatOrchestrator(
         }
 
         step.Restart();
-        var searchResults = await hybridSearchService.SearchAsync(message, request.TopK, ct);
+        var searchResults = await denseRerankSearchService.SearchAsync(message, request.TopK, ct);
         timings.Retrieval = step.ElapsedMilliseconds;
 
         if (searchResults.Count == 0)

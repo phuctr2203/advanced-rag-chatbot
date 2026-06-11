@@ -8,8 +8,7 @@ namespace PolicyBot.Api.Services.Query;
 public class ChatOrchestrator(
     LanguageDetectionService languageDetectionService,
     IntentClassifierService intentClassifierService,
-    HybridSearchService hybridSearchService,
-    IVectorStoreService vectorStoreService,
+    DenseRerankSearchService denseRerankSearchService,
     PromptBuilderService promptBuilderService,
     LlmService llmService,
     SourceCitationParser sourceCitationParser,
@@ -40,8 +39,7 @@ public class ChatOrchestrator(
             yield break;
         }
 
-        // var searchResults = await hybridSearchService.SearchAsync(message, ct);
-        var searchResults = await vectorStoreService.SearchAsync(message, 6, ct);
+        var searchResults = await denseRerankSearchService.SearchAsync(message, ct);
         if (searchResults.Count == 0)
         {
             yield return IntentResponses.NoResults(language.Language);

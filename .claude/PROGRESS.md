@@ -90,6 +90,19 @@ Master checklist mirrors `.claude/IMPLEMENTATION_PLAN.md`. Only check item after
 - [x] 3.H5 bge-m3 sparse-vector decision documented
 - [x] 3.H6 Hybrid retrieval verification and dense/keyword/hybrid comparison
 
+### Enhancement Phase 3.2 — Dense retrieval reranking
+
+- [x] 3.R1 Reranking enhancement plan documented in `docs/enhancements/enhancement-phase-3-reranking.md`
+- [x] 3.R2 `RetrievalOptions` and `RerankerOptions` added to API config
+- [x] 3.R3 HTTP reranker service implemented for `/rerank`
+- [x] 3.R4 Dense candidate search plus reranker final ranking implemented
+- [x] 3.R5 Chat endpoint uses the dense-rerank retrieval path
+- [x] 3.R6 Evaluation endpoint uses the same dense-rerank retrieval path
+- [ ] 3.R7 Reranker fallback to dense retrieval verified when service is unavailable
+- [ ] 3.R8 `/verify/rerank-search` diagnostic endpoint added and verified
+- [ ] 3.R9 RAGAS before/after pilot completed and metrics compared
+- [ ] 3.R10 Final `CandidateLimit` and `FinalLimit` selected from evaluation results
+
 ## Phase 4 — Frontend
 
 - [x] 4.1 React project scaffolded
@@ -177,4 +190,8 @@ Start only after Phase 5 is complete.
 - 2026-06-10: Added `evaluation/run_evaluation.py` as a one-command wrapper that takes an input XLSX and output XLSX, then runs batch answer generation, RAGAS scoring, and workbook summarization. Verified with a one-row smoke run: `evaluation/outputs/wrapper-smoke/evaluation_result.xlsx` contains `Question Results` and `Dataset Summary`.
 - 2026-06-11: Added `evaluation/test_reranker_multilingual.py` plus reranker config/docs to smoke-test whether a hosted `bge-reranker` ranks the expected chunk first for EN, VI, FR, and DE queries before wiring it into dense-only retrieval. Verified Python syntax and CLI help locally; live reranker verification requires the company reranker URL/API shape.
 - 2026-06-11: Tested company `inference-bge-reranker` host. Native rerank attempts against `/api/rerank`, `/api/`, `/api/v1/rerank`, and `/v1/rerank` returned `405 Method Not Allowed`. OpenWebUI model listing shows `inference-bge-reranker`, but calling it through `/api/v1/chat/completions` returned `404`/`429` for that model group, so the live multilingual reranker test is still blocked on the correct native rerank endpoint or backend route.
+- 2026-06-11: Pulled local Ollama model `qllama/bge-reranker-v2-m3:latest` successfully. Ollama reports BERT architecture, 567.75M params, 8192 context, 1024 embedding length, Q8_0 quantization, and completion capability. Native rerank endpoints are not exposed by Ollama, and chat-completions prompting returns repeated filler tokens (`in in in...`), so this Ollama-hosted artifact is not usable as a native reranker without a scoring/logits endpoint or separate reranker wrapper.
+- 2026-06-11: Added local FastAPI reranker wrapper for `jinaai/jina-reranker-v2-base-multilingual`. Installed CPU PyTorch/FastAPI dependencies, patched a Transformers compatibility issue for Jina remote code, started the service on `http://127.0.0.1:8081`, and verified `/rerank` with the multilingual smoke test. EN, VI, FR, and DE all ranked the annual-leave candidate first. The service files were moved into `python_service/` (`reranker_service.py`, `requirements.txt`). The server process is still running on port 8081 for follow-up testing.
+- 2026-06-11: Added reranking implementation plan in `docs/enhancements/enhancement-phase-3-reranking.md` and mirrored Enhancement Phase 3.2 checklist items 3.R1-3.R10. Scope is dense search top candidates plus local multilingual reranker final ranking, with fallback to dense retrieval and RAGAS before/after comparison.
+- 2026-06-11: Implemented dense-rerank retrieval in the API: `RetrievalOptions`, `RerankerOptions`, `HttpRerankerService`, `DenseRerankSearchService`, shared chat/evaluation retrieval path, `/verify/rerank-search`, and appsettings defaults for `http://127.0.0.1:8081/rerank`. Verified `dotnet build src\API\PolicyBot.Api.csproj -c Release`. Runtime verification of `/verify/rerank-search` is blocked because Qdrant health/gRPC calls are currently failing locally before reranking is reached.
  

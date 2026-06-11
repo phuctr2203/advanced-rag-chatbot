@@ -16,6 +16,8 @@ public static class QueryServiceCollectionExtensions
         services.AddScoped<FormDownloadEnrichmentService>();
         services.AddScoped<KeywordSearchService>();
         services.AddScoped<HybridSearchService>();
+        services.AddHttpClient<IRerankerService, HttpRerankerService>();
+        services.AddScoped<DenseRerankSearchService>();
         services.AddScoped<ChatOrchestrator>();
         services.AddScoped<EvaluationChatOrchestrator>();
 
