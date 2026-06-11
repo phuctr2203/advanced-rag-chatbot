@@ -7,12 +7,23 @@ import argparse
 import asyncio
 import importlib
 import json
+import math
 import os
 import sys
+import httpx
 from pathlib import Path
 
 
-DEFAULT_CONFIG = Path("evaluation/config.example.json")
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_CONFIG = SCRIPT_DIR / "config.example.json"
+SCORE_COLUMNS = [
+    "context_precision",
+    "context_recall",
+    "context_relevance",
+    "faithfulness",
+    "answer_relevancy",
+    "answer_correctness",
+]
 
 
 async def main_async() -> int:
@@ -25,6 +36,9 @@ async def main_async() -> int:
     if args.limit is not None:
         rows = rows[: args.limit]
 
+    completed_row_ids = read_completed_row_ids(output_path, retry_failed=args.retry_failed) if args.resume else set()
+    pending_rows = [row for row in rows if str(row.get("row_id", "")) not in completed_row_ids]
+
     try:
         metric_runner = build_metric_runner(config)
     except Exception as exc:  # noqa: BLE001 - setup errors should be explicit for local environments.
@@ -32,8 +46,12 @@ async def main_async() -> int:
         return 2
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as writer:
-        for index, row in enumerate(rows, start=1):
+    mode = "a" if args.resume else "w"
+    if completed_row_ids:
+        print(f"Resuming from {output_path}: {len(completed_row_ids)} scored row(s) already present")
+
+    with output_path.open(mode, encoding="utf-8") as writer:
+        for index, row in enumerate(pending_rows, start=len(completed_row_ids) + 1):
             scored = dict(row)
             if row.get("error"):
                 scored["ragas"] = {"error": row["error"], "scores": {}}
@@ -54,6 +72,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", help="Output JSONL path. Defaults to ragas_scores.jsonl beside input.")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="Path to evaluation config JSON.")
     parser.add_argument("--limit", type=int, help="Only score first N rows.")
+    parser.add_argument("--no-resume", dest="resume", action="store_false", help="Overwrite output and score from the beginning.")
+    parser.add_argument("--retry-failed", action="store_true", help="When resuming, retry rows with failed or incomplete RAGAS scores.")
+    parser.set_defaults(resume=True)
     return parser.parse_args()
 
 
@@ -74,28 +95,84 @@ def read_jsonl(path: Path) -> list[dict]:
     return rows
 
 
+def read_completed_row_ids(path: Path, retry_failed: bool = False) -> set[str]:
+    completed = set()
+    if not path.exists():
+        return set()
+
+    with path.open("r", encoding="utf-8") as reader:
+        for line in reader:
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            row_id = str(record.get("row_id", "")).strip()
+            if row_id and (not retry_failed or is_successfully_scored(record)):
+                completed.add(row_id)
+
+    return completed
+
+
+def is_successfully_scored(record: dict) -> bool:
+    ragas = record.get("ragas") or {}
+    scores = ragas.get("scores") or {}
+    errors = ragas.get("errors") or {}
+    if errors or ragas.get("error"):
+        return False
+
+    for metric_name in SCORE_COLUMNS:
+        if not is_valid_score(scores.get(metric_name)):
+            return False
+
+    return True
+
+
+def is_valid_score(value: object) -> bool:
+    if value is None:
+        return False
+
+    if isinstance(value, float) and math.isnan(value):
+        return False
+
+    return True
+
+
 def build_metric_runner(config: dict) -> "RagasMetricRunner":
     ragas_llms = importlib.import_module("ragas.llms")
+    langchain_openai = importlib.import_module("langchain_openai")
 
     evaluator_config = config.get("evaluator", {})
     os.environ["OPENAI_API_KEY"] = evaluator_config.get("apiKey", "ollama")
-    evaluator_llm = ragas_llms.llm_factory(
-        evaluator_config.get("model", "gpt-oss:120b-cloud"),
+    verify_ssl = bool(evaluator_config.get("verifySsl", True))
+    timeout = int(evaluator_config.get("timeoutSeconds", 180))
+    chat_llm = langchain_openai.ChatOpenAI(
+        model=evaluator_config.get("model", "gpt-oss:120b-cloud"),
+        api_key=evaluator_config.get("apiKey", "ollama"),
         base_url=evaluator_config.get("baseUrl", "http://localhost:11434/v1"),
+        timeout=timeout,
+        http_client=httpx.Client(verify=verify_ssl, timeout=timeout),
+        http_async_client=httpx.AsyncClient(verify=verify_ssl, timeout=timeout),
     )
+    evaluator_llm = ragas_llms.LangchainLLMWrapper(chat_llm)
 
     embeddings = None
     embeddings_config = config.get("embeddings", {})
     if embeddings_config:
         try:
             ragas_embeddings = importlib.import_module("ragas.embeddings")
-            langchain_openai = importlib.import_module("langchain_openai")
+            embeddings_verify_ssl = bool(embeddings_config.get("verifySsl", True))
+            embeddings_timeout = int(embeddings_config.get("timeoutSeconds", 180))
             langchain_embeddings = langchain_openai.OpenAIEmbeddings(
                 model=embeddings_config.get("model", "BAAI/bge-m3"),
                 base_url=embeddings_config.get("baseUrl", "http://localhost:8080/v1"),
                 api_key=embeddings_config.get("apiKey", "tei"),
                 tiktoken_enabled=False,
                 check_embedding_ctx_length=False,
+                http_client=httpx.Client(verify=embeddings_verify_ssl, timeout=embeddings_timeout),
+                http_async_client=httpx.AsyncClient(verify=embeddings_verify_ssl, timeout=embeddings_timeout),
             )
             embeddings = ragas_embeddings.LangchainEmbeddingsWrapper(langchain_embeddings)
         except Exception as exc:  # noqa: BLE001 - answer relevancy will report this.

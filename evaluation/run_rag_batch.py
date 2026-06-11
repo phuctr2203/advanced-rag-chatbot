@@ -60,7 +60,8 @@ def main() -> int:
     print(f"Endpoint: {endpoint}")
     print(f"Output: {output_path}")
 
-    with output_path.open("a", encoding="utf-8") as writer:
+    mode = "a" if args.resume else "w"
+    with output_path.open(mode, encoding="utf-8") as writer:
         for index, row in enumerate(rows, start=1):
             row_id = str(row["Row ID"])
             if row_id in completed:

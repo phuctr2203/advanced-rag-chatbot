@@ -65,6 +65,8 @@ def main() -> int:
     ]
     if args.limit is not None:
         score_command += ["--limit", str(args.limit)]
+    if args.no_resume:
+        score_command.append("--no-resume")
 
     summary_command = [
         *common_python,
