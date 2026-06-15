@@ -160,9 +160,16 @@ a {
 .page-grid {
   display: grid;
   gap: 18px;
+  min-height: 0;
   max-width: 1360px;
   margin: 0 auto;
   padding: 24px;
+}
+
+.chat-layout {
+  grid-template-rows: auto minmax(0, 1fr);
+  height: calc(100vh - 56px);
+  overflow: hidden;
 }
 
 .page-header {
@@ -256,7 +263,7 @@ h3 {
 .chat-panel {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto auto;
-  min-height: calc(100vh - 156px);
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -1124,10 +1131,6 @@ select:focus {
   .form-mapping-layout .review-panel {
     grid-column: auto;
     grid-row: auto;
-  }
-
-  .chat-panel {
-    min-height: calc(100vh - 236px);
   }
 }
 
