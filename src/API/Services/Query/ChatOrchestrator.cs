@@ -15,7 +15,7 @@ public class ChatOrchestrator(
     FormDownloadEnrichmentService formDownloadEnrichmentService)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private const float RagAnswerTemperature = 0.1f;
+    private const float RagAnswerTemperature = 0;
 
     public async IAsyncEnumerable<string> StreamAsync(
         ChatRequest request,
@@ -56,7 +56,9 @@ public class ChatOrchestrator(
         }
 
         var fullAnswerText = string.Concat(answerTokens);
-        var sources = sourceCitationParser.Parse(fullAnswerText, searchResults);
+        var sources = AnswerSourcePolicy.RemoveSourcesWhenUnsupported(
+            fullAnswerText,
+            sourceCitationParser.Parse(fullAnswerText, searchResults));
         var formDownloads = formDownloadEnrichmentService.FindDownloadRefs(fullAnswerText, sources);
         yield return BuildSourcesEvent(sources, formDownloads);
     }

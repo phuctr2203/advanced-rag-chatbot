@@ -23,6 +23,7 @@ public class PromptBuilderService
         prompt.AppendLine();
         prompt.AppendLine("After your answer, list the sources on a new line in this exact format:");
         prompt.AppendLine("SOURCES: filename.pdf (page N), filename2.docx (page M)");
+        prompt.AppendLine("If the provided context does not contain the answer, say that the information is not available and do not list SOURCES.");
         prompt.AppendLine();
         prompt.AppendLine("Context:");
         prompt.AppendLine(context);

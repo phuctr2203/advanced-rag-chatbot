@@ -47,9 +47,9 @@ const starterMessages: ChatMessage[] = [
 ];
 
 const chatPromptSuggestions = [
-  'How do I submit a payment request and where can I download the form?',
-  'How many additional annual leave days do I get based on seniority?',
-  'How can I refer a candidate via Oracle?',
+  'Who should I report when there are emergencies cases in the building',
+  'Where are the assembly points if there are issue within the building',
+  'What is the price to buy company’s laptop?'
 ];
 
 export default function App() {
@@ -441,7 +441,6 @@ function parseMarkdownBlocks(content: string) {
     if (/^SOURCES:/i.test(trimmed)) {
       flushParagraph();
       flushLists();
-      blocks.push({ type: 'paragraph', text: trimmed });
       continue;
     }
 

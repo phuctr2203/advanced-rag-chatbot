@@ -92,7 +92,9 @@ public class EvaluationChatOrchestrator(
         timings.Generation = step.ElapsedMilliseconds;
 
         step.Restart();
-        var sources = sourceCitationParser.Parse(answer, searchResults);
+        var sources = AnswerSourcePolicy.RemoveSourcesWhenUnsupported(
+            answer,
+            sourceCitationParser.Parse(answer, searchResults));
         var formDownloads = formDownloadEnrichmentService.FindDownloadRefs(answer, sources);
         timings.CitationParsing = step.ElapsedMilliseconds;
         timings.Total = total.ElapsedMilliseconds;
